@@ -1,0 +1,155 @@
+diff --git a/apps/desktop-host/src/index.ts b/apps/desktop-host/src/index.ts
+index 31bbbffe..b29a68d4 100644
+--- a/apps/desktop-host/src/index.ts
++++ b/apps/desktop-host/src/index.ts
+@@ -19,6 +19,12 @@ import { installPlatformSessionPublisher } from './platform-session.ts'
+ import { installOfficeEngineResolution } from './office-engine.ts'
+ import { installOperationDiagnostics } from './operation-diagnostics.ts'
+ 
++process.on('unhandledRejection', (reason) => {
++  console.error('[desktop-host] unhandledRejection:', reason)
++})
++process.on('uncaughtException', (error) => {
++  console.error('[desktop-host] uncaughtException:', error)
++})
+ async function main(): Promise<void> {
+   const runId = randomUUID() as PluginOperationRunId
+   if (process.connected) process.send?.({ type: 'starting', runId }, (error) => { if (error !== null) console.error(error) })
+diff --git a/apps/desktop/scripts/desktop-build-paths.mjs b/apps/desktop/scripts/desktop-build-paths.mjs
+index edfd9cdf..d935606a 100644
+--- a/apps/desktop/scripts/desktop-build-paths.mjs
++++ b/apps/desktop/scripts/desktop-build-paths.mjs
+@@ -4,7 +4,7 @@ import { isAbsolute, join, resolve } from 'node:path'
+ 
+ const APP_ROOT = resolve(import.meta.dirname, '..')
+ const BUILD_ROOT = join(APP_ROOT, '.desktop-build')
+-const SUPPORTED_TARGETS = new Set(['mac-arm64', 'mac-x64', 'win-x64'])
++const SUPPORTED_TARGETS = new Set(['mac-arm64', 'mac-x64', 'win-x64', 'linux-x64'])
+ 
+ /**
+  * Resolve the fixed build target selected by a packaging environment.
+@@ -79,6 +79,7 @@ export function desktopTargetPlatform(target) {
+     'mac-arm64': { platform: 'darwin', arch: 'arm64' },
+     'mac-x64': { platform: 'darwin', arch: 'x64' },
+     'win-x64': { platform: 'win32', arch: 'x64' },
++    'linux-x64': { platform: 'linux', arch: 'x64' },
+   })
+   return targets[target]
+ }
+diff --git a/apps/desktop/src/host-process.ts b/apps/desktop/src/host-process.ts
+index 338f93bd..1f3a03f5 100644
+--- a/apps/desktop/src/host-process.ts
++++ b/apps/desktop/src/host-process.ts
+@@ -261,8 +261,10 @@ export class DesktopHostProcess {
+     this.exitPromise = new Promise<void>((resolve) => {
+       child.once('close', (code) => {
+         const suffix = this.stderr.trim() === '' ? '' : `: ${this.stderr.trim()}`
+-        if (code !== 0 && code !== null) this.fail(new Error(`dsh desktop host exited with ${String(code)}${suffix}`))
+-        else this.fail(new Error(`dsh desktop host stopped${suffix}`))
++        if (!this.stopping) {
++          if (code !== 0 && code !== null) this.fail(new Error(`dsh desktop host exited with ${String(code)}${suffix}`))
++          else this.fail(new Error(`dsh desktop host stopped${suffix}`))
++        }
+         resolve()
+       })
+     })
+diff --git a/apps/desktop/src/main.ts b/apps/desktop/src/main.ts
+index dd314122..31da00bf 100644
+--- a/apps/desktop/src/main.ts
++++ b/apps/desktop/src/main.ts
+@@ -26,6 +26,12 @@ import {
+   type IpcMainInvokeEvent,
+   type MenuItemConstructorOptions,
+ } from 'electron'
++if (process.platform === 'linux') {
++  app.setName('deepseek-harness')
++  if (typeof app.setDesktopName === 'function') {
++    app.setDesktopName('deepseek-harness.desktop')
++  }
++}
+ import { resolveDesktopPaths } from './paths.ts'
+ import { DesktopProjectManager } from './project-manager.ts'
+ import { DesktopHostFatalError, DesktopHostProcess, DesktopHostUncleanExitError } from './host-process.ts'
+@@ -102,6 +108,14 @@ function quitWithoutConfirmation(): void {
+   skipQuitConfirmation = true
+   app.quit()
+ }
++const terminateApp = (): void => {
++  if (shuttingDown) return
++  shuttingDown = true
++  skipQuitConfirmation = true
++  app.quit()
++}
++process.on('SIGINT', terminateApp)
++process.on('SIGTERM', terminateApp)
+ const recovery = new DesktopFatalRecovery({
+   messages: () => currentDesktopLocale().messages,
+   show: options => dialog.showMessageBox(options),
+@@ -267,6 +281,8 @@ function createWindow(preload: string, show = false, primary = false): BrowserWi
+     minWidth: 520,
+     minHeight: 600,
+     show,
++    title: 'DeepSeek Harness',
++    icon: join(app.getAppPath(), 'resources', 'icon.png'),
+     ...(process.platform === 'win32' && primary ? {
+       titleBarStyle: 'hidden' as const,
+       titleBarOverlay: { height: WINDOWS_TITLEBAR_HEIGHT, color: chromeFallbackFill(),
+@@ -600,7 +616,9 @@ async function main(): Promise<void> {
+       resolveDragResource: (address: string, signal?: AbortSignal) => host.resolveDragResource(address, signal),
+     }
+   }, (state) => {
+-    if (state.phase === 'error') reportFatal(state.failure, 'host')
++    if (state.phase === 'error') {
++      if (!shuttingDown) reportFatal(state.failure, 'host')
++    }
+     else if (!shuttingDown) backendReady = state.phase === 'ready'
+   })
+ 
+diff --git a/apps/desktop/src/welcome-window.ts b/apps/desktop/src/welcome-window.ts
+index 61fda9e3..3a690001 100644
+--- a/apps/desktop/src/welcome-window.ts
++++ b/apps/desktop/src/welcome-window.ts
+@@ -24,6 +24,7 @@ export function welcomeWindowOptions(platform: NodeJS.Platform, locale: DesktopL
+     fullscreenable: false,
+     show: false,
+     title: locale.messages.welcomeTitle,
++    icon: fileURLToPath(new URL('../resources/icon.png', import.meta.url)),
+     backgroundColor: platform === 'darwin' || platform === 'win32' ? '#00000000' : '#FFFFFF',
+     ...(platform === 'darwin' ? {
+       titleBarStyle: 'hidden',
+diff --git a/packages/credentials/deepseek-account-platform/src/index.ts b/packages/credentials/deepseek-account-platform/src/index.ts
+index 0319a553..c26c1524 100644
+--- a/packages/credentials/deepseek-account-platform/src/index.ts
++++ b/packages/credentials/deepseek-account-platform/src/index.ts
+@@ -258,11 +258,7 @@ export class PlatformAccount extends DeepSeekAccount {
+     // acknowledgement reuses it instead of issuing another current query.
+     if (this.lastProfile?.token === stored.token) return this.identityOf(this.lastProfile.profile)
+     const details = await this.getDetail('profile', headers, { lifetime, stored })
+-    if (details === null) return null
+-    if (details.status === 'failed') {
+-      // The query named no identity, and the cache is empty or belongs to another grant.
+-      throw new PlatformAuthError('network')
+-    }
++    if (details === null || details.status === 'failed') return null
+     this.cacheProfile(stored.token, details)
+     return this.identityOf(details)
+   }
+diff --git a/packages/credentials/deepseek-account-platform/src/protocol.ts b/packages/credentials/deepseek-account-platform/src/protocol.ts
+index 54d1afd9..cb546eb1 100644
+--- a/packages/credentials/deepseek-account-platform/src/protocol.ts
++++ b/packages/credentials/deepseek-account-platform/src/protocol.ts
+@@ -171,9 +171,13 @@ function callerCancelled(signal: AbortSignal): boolean {
+ 
+ async function platformRequest(url: string, init: RequestInit, signal: AbortSignal): Promise<unknown> {
+   const path = new URL(url).pathname
++  const headers = new Headers(init.headers)
++  if (!headers.has('user-agent')) {
++    headers.set('user-agent', 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36')
++  }
+   let response: Response
+   try {
+-    response = await fetch(url, { ...init, redirect: 'error', signal })
++    response = await fetch(url, { ...init, headers, redirect: 'error', signal })
+   } catch {
+     if (!callerCancelled(signal)) console.error('[deepseek-account] request failed', { path, errorCode: 'no-response', aborted: signal.aborted })
+     throw new PlatformAuthError('no-response')

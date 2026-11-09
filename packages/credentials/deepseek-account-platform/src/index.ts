@@ -258,11 +258,7 @@ export class PlatformAccount extends DeepSeekAccount {
     // acknowledgement reuses it instead of issuing another current query.
     if (this.lastProfile?.token === stored.token) return this.identityOf(this.lastProfile.profile)
     const details = await this.getDetail('profile', headers, { lifetime, stored })
-    if (details === null) return null
-    if (details.status === 'failed') {
-      // The query named no identity, and the cache is empty or belongs to another grant.
-      throw new PlatformAuthError('network')
-    }
+    if (details === null || details.status === 'failed') return null
     this.cacheProfile(stored.token, details)
     return this.identityOf(details)
   }

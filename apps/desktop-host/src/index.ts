@@ -19,6 +19,12 @@ import { installPlatformSessionPublisher } from './platform-session.ts'
 import { installOfficeEngineResolution } from './office-engine.ts'
 import { installOperationDiagnostics } from './operation-diagnostics.ts'
 
+process.on('unhandledRejection', (reason) => {
+  console.error('[desktop-host] unhandledRejection:', reason)
+})
+process.on('uncaughtException', (error) => {
+  console.error('[desktop-host] uncaughtException:', error)
+})
 async function main(): Promise<void> {
   const runId = randomUUID() as PluginOperationRunId
   if (process.connected) process.send?.({ type: 'starting', runId }, (error) => { if (error !== null) console.error(error) })

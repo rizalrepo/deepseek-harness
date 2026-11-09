@@ -171,9 +171,13 @@ function callerCancelled(signal: AbortSignal): boolean {
 
 async function platformRequest(url: string, init: RequestInit, signal: AbortSignal): Promise<unknown> {
   const path = new URL(url).pathname
+  const headers = new Headers(init.headers)
+  if (!headers.has('user-agent')) {
+    headers.set('user-agent', 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36')
+  }
   let response: Response
   try {
-    response = await fetch(url, { ...init, redirect: 'error', signal })
+    response = await fetch(url, { ...init, headers, redirect: 'error', signal })
   } catch {
     if (!callerCancelled(signal)) console.error('[deepseek-account] request failed', { path, errorCode: 'no-response', aborted: signal.aborted })
     throw new PlatformAuthError('no-response')

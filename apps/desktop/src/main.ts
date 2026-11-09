@@ -26,6 +26,12 @@ import {
   type IpcMainInvokeEvent,
   type MenuItemConstructorOptions,
 } from 'electron'
+if (process.platform === 'linux') {
+  app.setName('deepseek-harness')
+  if (typeof app.setDesktopName === 'function') {
+    app.setDesktopName('deepseek-harness.desktop')
+  }
+}
 import { resolveDesktopPaths } from './paths.ts'
 import { DesktopProjectManager } from './project-manager.ts'
 import { DesktopHostFatalError, DesktopHostProcess, DesktopHostUncleanExitError } from './host-process.ts'
@@ -102,6 +108,14 @@ function quitWithoutConfirmation(): void {
   skipQuitConfirmation = true
   app.quit()
 }
+const terminateApp = (): void => {
+  if (shuttingDown) return
+  shuttingDown = true
+  skipQuitConfirmation = true
+  app.quit()
+}
+process.on('SIGINT', terminateApp)
+process.on('SIGTERM', terminateApp)
 const recovery = new DesktopFatalRecovery({
   messages: () => currentDesktopLocale().messages,
   show: options => dialog.showMessageBox(options),
@@ -267,6 +281,8 @@ function createWindow(preload: string, show = false, primary = false): BrowserWi
     minWidth: 520,
     minHeight: 600,
     show,
+    title: 'DeepSeek Harness',
+    icon: join(app.getAppPath(), 'resources', 'icon.png'),
     ...(process.platform === 'win32' && primary ? {
       titleBarStyle: 'hidden' as const,
       titleBarOverlay: { height: WINDOWS_TITLEBAR_HEIGHT, color: chromeFallbackFill(),
@@ -600,7 +616,9 @@ async function main(): Promise<void> {
       resolveDragResource: (address: string, signal?: AbortSignal) => host.resolveDragResource(address, signal),
     }
   }, (state) => {
-    if (state.phase === 'error') reportFatal(state.failure, 'host')
+    if (state.phase === 'error') {
+      if (!shuttingDown) reportFatal(state.failure, 'host')
+    }
     else if (!shuttingDown) backendReady = state.phase === 'ready'
   })
 
