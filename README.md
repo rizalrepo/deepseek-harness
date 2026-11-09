@@ -40,6 +40,10 @@ pnpm dsh web
 
 `pnpm run build` prepares the repository artifacts. `pnpm dsh web` uses those built artifacts without rebuilding.
 
+### Run Desktop on Linux
+
+To build and run the native Electron desktop application with GNOME/KDE dock integration on Linux (x64), see the [Linux Desktop Guide](docs/user/guide/linux-desktop.md).
+
 ## Community and support
 
 - Submit feedback or bug reports through [GitHub Discussions](https://github.com/deepseek-ai/deepseek-harness/discussions).
