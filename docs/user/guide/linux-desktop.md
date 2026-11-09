@@ -6,6 +6,26 @@ The Desktop app ships official packages for macOS and Windows. Linux is not yet 
 
 This guide produces an unpackaged Electron app with a GNOME/KDE dock icon and a one-command updater.
 
+## Quick Install (One Command)
+
+Run this in your terminal:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/rizalrepo/deepseek-harness/master/install.sh | bash
+```
+
+The installer automatically clones the repo, installs dependencies, builds the artifacts and runtime, installs hicolor desktop icons, and registers `dsh-desktop` and `update-dsh-desktop` in `~/.local/bin/`.
+
+To launch:
+
+```sh
+dsh-desktop
+```
+
+---
+
+## Manual Installation
+
 ## Prerequisites
 
 | Tool | Minimum | Notes |

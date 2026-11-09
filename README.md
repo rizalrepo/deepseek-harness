@@ -42,7 +42,25 @@ pnpm dsh web
 
 ### Run Desktop on Linux
 
-To build and run the native Electron desktop application with GNOME/KDE dock integration on Linux (x64), see the [Linux Desktop Guide](docs/user/guide/linux-desktop.md).
+Install the native Electron desktop application with GNOME/KDE dock integration using one command:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/rizalrepo/deepseek-harness/master/install.sh | bash
+```
+
+Once installed, launch it from your application menu or run:
+
+```sh
+dsh-desktop
+```
+
+To update anytime:
+
+```sh
+update-dsh-desktop
+```
+
+For manual build instructions and troubleshooting, see the [Linux Desktop Guide](docs/user/guide/linux-desktop.md).
 
 ## Community and support
 
