@@ -29,6 +29,7 @@ export const zh = {
   'inspect.enable': '检查元素 (设计模式)',
   'inspect.disable': '退出检查模式',
   'inspect.copied': '元素 Prompt 已复制到剪贴板！',
+  'inspect.copiedWithImage': '截图与 Prompt 已复制到剪贴板！(Ctrl+V 粘贴)',
 } satisfies Record<string, string>
 
 /** Browser dictionary key union. */
@@ -65,6 +66,7 @@ export const en = {
   'inspect.enable': 'Inspect element (Design Mode)',
   'inspect.disable': 'Exit inspect mode',
   'inspect.copied': 'Element prompt copied to clipboard!',
+  'inspect.copiedWithImage': 'Screenshot and prompt copied to clipboard! (Paste with Ctrl+V)',
 } satisfies Record<SidebarBrowserKey, string>
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
@@ -105,6 +107,7 @@ export const ja = {
   'inspect.enable': '要素を検証 (デザインモード)',
   'inspect.disable': '検証モードを終了',
   'inspect.copied': '要素のプロンプトをクリップボードにコピーしました！',
+  'inspect.copiedWithImage': 'スクリーンショットとプロンプトをコピーしました！(Ctrl+Vで貼り付け)',
 } satisfies Record<keyof typeof en, string>
 
 /** Spanish dictionary, checked against the English keys. */
@@ -138,6 +141,7 @@ export const es = {
   'inspect.enable': 'Inspeccionar elemento (Modo de diseño)',
   'inspect.disable': 'Salir del modo de inspección',
   'inspect.copied': '¡Prompt del elemento copiado al portapapeles!',
+  'inspect.copiedWithImage': '¡Captura y prompt copiados al portapapeles! (Pegar con Ctrl+V)',
 } satisfies Record<keyof typeof en, string>
 
 /** French dictionary, checked against the English keys. */
@@ -171,6 +175,7 @@ export const fr = {
   'inspect.enable': "Inspecter l'élément (Mode conception)",
   'inspect.disable': 'Quitter le mode inspection',
   'inspect.copied': 'Prompt de l\'élément copié dans le presse-papier !',
+  'inspect.copiedWithImage': 'Capture et prompt copiés dans le presse-papier ! (Coller avec Ctrl+V)',
 } satisfies Record<keyof typeof en, string>
 
 /** German dictionary, checked against the English keys. */
@@ -204,6 +209,7 @@ export const de = {
   'inspect.enable': 'Element untersuchen (Designmodus)',
   'inspect.disable': 'Untersuchungsmodus beenden',
   'inspect.copied': 'Element-Prompt in die Zwischenablage kopiert!',
+  'inspect.copiedWithImage': 'Screenshot und Prompt in Zwischenablage kopiert! (Einfügen mit Strg+V)',
 } satisfies Record<keyof typeof en, string>
 
 /** Russian dictionary, checked against the English keys. */
@@ -237,6 +243,7 @@ export const ru = {
   'inspect.enable': 'Инспектировать элемент (Режим дизайна)',
   'inspect.disable': 'Выйти из режима инспекции',
   'inspect.copied': 'Промпт элемента скопирован в буфер обмена!',
+  'inspect.copiedWithImage': 'Скриншот и промпт скопированы в буфер! (Вставьте через Ctrl+V)',
 } satisfies Record<keyof typeof en, string>
 
 /** Portuguese dictionary, checked against the English keys. */
@@ -270,4 +277,5 @@ export const pt = {
   'inspect.enable': 'Inspecionar elemento (Modo de design)',
   'inspect.disable': 'Sair do modo de inspeção',
   'inspect.copied': 'Prompt do elemento copiado para a área de transferência!',
+  'inspect.copiedWithImage': 'Captura e prompt copiados para a área de transferência! (Cole com Ctrl+V)',
 } satisfies Record<keyof typeof en, string>
