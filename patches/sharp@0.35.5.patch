@@ -1,0 +1,60 @@
+diff --git a/dist/sharp.cjs b/dist/sharp.cjs
+index bea6c6afb571715e3489640477e3c36231b1da27..69bb36e32bbfd8549bcbf8a901cb334c6c81ace3 100644
+--- a/dist/sharp.cjs
++++ b/dist/sharp.cjs
+@@ -21,10 +21,21 @@ const runtimePlatform = runtimePlatformArch();
+ 
+ let sharp;
+ const errors = [];
+-try {
+-  sharp = require(`../src/build/Release/sharp-${runtimePlatform}-${version}.node`);
+-} catch (err) {
+-  errors.push(err);
++// Electron on Linux leaks its system glib into the process; the prebuilt
++// libvips then segfaults (electron/electron#46323). Use the WebAssembly build.
++if (process.versions.electron && runtimePlatform.startsWith("linux")) {
++  try {
++    sharp = require("@img/sharp-wasm32/sharp.node");
++  } catch (err) {
++    errors.push(err);
++  }
++}
++if (!sharp) {
++  try {
++    sharp = require(`../src/build/Release/sharp-${runtimePlatform}-${version}.node`);
++  } catch (err) {
++    errors.push(err);
++  }
+ }
+ if (!sharp) {
+   try {
+diff --git a/dist/sharp.mjs b/dist/sharp.mjs
+index df4acb42ba5c4406eb57955f620244d8519c71a9..bd63932122a53f4009280a95990699641e3ade91 100644
+--- a/dist/sharp.mjs
++++ b/dist/sharp.mjs
+@@ -21,10 +21,21 @@ const runtimePlatform = runtimePlatformArch();
+ 
+ let sharp;
+ const errors = [];
+-try {
+-  sharp = require(`../src/build/Release/sharp-${runtimePlatform}-${version}.node`);
+-} catch (err) {
+-  errors.push(err);
++// Electron on Linux leaks its system glib into the process; the prebuilt
++// libvips then segfaults (electron/electron#46323). Use the WebAssembly build.
++if (process.versions.electron && runtimePlatform.startsWith("linux")) {
++  try {
++    sharp = require("@img/sharp-wasm32/sharp.node");
++  } catch (err) {
++    errors.push(err);
++  }
++}
++if (!sharp) {
++  try {
++    sharp = require(`../src/build/Release/sharp-${runtimePlatform}-${version}.node`);
++  } catch (err) {
++    errors.push(err);
++  }
+ }
+ if (!sharp) {
+   try {

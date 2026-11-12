@@ -50,6 +50,7 @@ export function prepareRuntimePatches(
   if (resolve(projectRoot) === resolve(repositoryRoot)) throw new Error('desktop patches: destination must not be the source workspace')
   const source = yaml.load(readFileSync(join(repositoryRoot, 'pnpm-workspace.yaml'), 'utf8')) as {
     patchedDependencies: Record<string, string>
+    packageExtensions?: Record<string, unknown>
   }
   const sourceLock = yaml.load(readFileSync(join(repositoryRoot, 'pnpm-lock.yaml'), 'utf8')) as {
     patchedDependencies: Record<string, string>
@@ -85,8 +86,10 @@ export function prepareRuntimePatches(
   }
   mkdirSync(join(projectRoot, 'patches'), { recursive: true })
   for (const entry of selected) writeFileSync(join(projectRoot, entry.path), entry.bytes)
-  writeFileSync(targetPath, yaml.dump({ ...target, overrides: { ...target.overrides, ...overrides },
-    patchedDependencies: Object.fromEntries(selected.map(entry => [entry.spec, entry.path])), allowUnusedPatches: false }))
+  const merged: Record<string, unknown> = { ...target, overrides: { ...target.overrides, ...overrides },
+    patchedDependencies: Object.fromEntries(selected.map(entry => [entry.spec, entry.path])), allowUnusedPatches: false }
+  if (source.packageExtensions !== undefined) merged.packageExtensions = source.packageExtensions
+  writeFileSync(targetPath, yaml.dump(merged))
   return { patches: selected.map(({ bytes: _bytes, ...entry }) => entry),
     workspaceOnly: Object.entries(policy).filter(([, rule]) => rule.scope === 'workspace-only').map(([spec]) => patchIdentity(spec).name) }
 }

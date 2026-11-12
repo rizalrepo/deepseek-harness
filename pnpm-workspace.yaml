@@ -19,6 +19,13 @@ overrides:
   '@deepseek-ai/cosmokit': 'link:vendor/cosmokit'
   '@deepseek-ai/schemastery': 'link:vendor/schemastery'
 
+# Electron on Linux crashes the prebuilt libvips (electron/electron#46323);
+# the patched sharp loader uses this WebAssembly build there instead.
+packageExtensions:
+  sharp@0.35.5:
+    dependencies:
+      '@img/sharp-wasm32': 0.35.5
+
 peerDependencyRules:
   allowedVersions:
     typescript: '>=5 <7'
@@ -120,3 +127,4 @@ patchedDependencies:
   mdast-util-gfm-autolink-literal@2.0.1: patches/mdast-util-gfm-autolink-literal@2.0.1.patch
   micromark-extension-gfm-autolink-literal@2.1.0: patches/micromark-extension-gfm-autolink-literal@2.1.0.patch
   node-pty@1.2.0-beta.15: patches/node-pty@1.2.0-beta.15.patch
+  sharp@0.35.5: patches/sharp@0.35.5.patch
