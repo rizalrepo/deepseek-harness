@@ -26,6 +26,9 @@ export const zh = {
   'load.failed': '页面加载失败；请刷新重试或在系统浏览器中打开。',
   'load.failed.detail': '页面加载失败 ({code}): {description}',
   'address.unknown': '页面已跳转；当前载体无法读取新的 URL。',
+  'inspect.enable': '检查元素 (设计模式)',
+  'inspect.disable': '退出检查模式',
+  'inspect.copied': '元素 Prompt 已复制到剪贴板！',
 } satisfies Record<string, string>
 
 /** Browser dictionary key union. */
@@ -59,6 +62,9 @@ export const en = {
   'load.failed': 'The page could not load; reload or open it in the system browser.',
   'load.failed.detail': 'Page load failed ({code}): {description}',
   'address.unknown': 'The page navigated; this carrier cannot read its new URL.',
+  'inspect.enable': 'Inspect element (Design Mode)',
+  'inspect.disable': 'Exit inspect mode',
+  'inspect.copied': 'Element prompt copied to clipboard!',
 } satisfies Record<SidebarBrowserKey, string>
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
@@ -96,6 +102,9 @@ export const ja = {
   'load.failed': 'ページを読み込めませんでした。再読み込みするか、システムブラウザで開いてください。',
   'load.failed.detail': 'ページの読み込みに失敗しました（{code}）: {description}',
   'address.unknown': 'ページが遷移しました。このキャリアは新しいURLを読み取れません。',
+  'inspect.enable': '要素を検証 (デザインモード)',
+  'inspect.disable': '検証モードを終了',
+  'inspect.copied': '要素のプロンプトをクリップボードにコピーしました！',
 } satisfies Record<keyof typeof en, string>
 
 /** Spanish dictionary, checked against the English keys. */
@@ -126,6 +135,9 @@ export const es = {
   'load.failed': 'La página no se pudo cargar; recargarlo o abrirlo en el navegador del sistema.',
   'load.failed.detail': 'Error al cargar la página ({code}): {description}',
   'address.unknown': 'La página navegó; este operador no puede leer su nueva URL.',
+  'inspect.enable': 'Inspeccionar elemento (Modo de diseño)',
+  'inspect.disable': 'Salir del modo de inspección',
+  'inspect.copied': '¡Prompt del elemento copiado al portapapeles!',
 } satisfies Record<keyof typeof en, string>
 
 /** French dictionary, checked against the English keys. */
@@ -156,6 +168,9 @@ export const fr = {
   'load.failed': "La page n'a pas pu se charger ; rechargez-le ou ouvrez-le dans le navigateur système.",
   'load.failed.detail': 'Échec du chargement de la page ({code}) : {description}',
   'address.unknown': 'La page parcourue ; cet opérateur ne peut pas lire sa nouvelle URL.',
+  'inspect.enable': "Inspecter l'élément (Mode conception)",
+  'inspect.disable': 'Quitter le mode inspection',
+  'inspect.copied': 'Prompt de l\'élément copié dans le presse-papier !',
 } satisfies Record<keyof typeof en, string>
 
 /** German dictionary, checked against the English keys. */
@@ -186,6 +201,9 @@ export const de = {
   'load.failed': 'Die Seite konnte nicht geladen werden; neu laden oder im Systembrowser öffnen.',
   'load.failed.detail': 'Laden der Seite fehlgeschlagen ({code}): {description}',
   'address.unknown': 'Die Seite wurde navigiert; Dieser Netzbetreiber kann seine neue URL nicht lesen.',
+  'inspect.enable': 'Element untersuchen (Designmodus)',
+  'inspect.disable': 'Untersuchungsmodus beenden',
+  'inspect.copied': 'Element-Prompt in die Zwischenablage kopiert!',
 } satisfies Record<keyof typeof en, string>
 
 /** Russian dictionary, checked against the English keys. */
@@ -216,6 +234,9 @@ export const ru = {
   'load.failed': 'Страница не может загрузиться; перезагрузите или откройте его в системном браузере.',
   'load.failed.detail': 'Ошибка загрузки страницы ({code}): {description}',
   'address.unknown': 'Страница перемещалась; этот оператор связи не может прочитать свой новый URL-адрес.',
+  'inspect.enable': 'Инспектировать элемент (Режим дизайна)',
+  'inspect.disable': 'Выйти из режима инспекции',
+  'inspect.copied': 'Промпт элемента скопирован в буфер обмена!',
 } satisfies Record<keyof typeof en, string>
 
 /** Portuguese dictionary, checked against the English keys. */
@@ -246,4 +267,7 @@ export const pt = {
   'load.failed': 'A página não pôde carregar; recarregue ou abra-o no navegador do sistema.',
   'load.failed.detail': 'Falha no carregamento da página ({code}): {description}',
   'address.unknown': 'A página navegada; esta operadora não consegue ler seu novo URL.',
+  'inspect.enable': 'Inspecionar elemento (Modo de design)',
+  'inspect.disable': 'Sair do modo de inspeção',
+  'inspect.copied': 'Prompt do elemento copiado para a área de transferência!',
 } satisfies Record<keyof typeof en, string>

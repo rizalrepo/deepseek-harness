@@ -280,4 +280,19 @@ describe('BrowserBody', () => {
     expect(mounted.store.getSnapshot().byTab[TAB]?.entries.at(-1)?.url).toBe('https://latest.example/path')
   })
 
+  it('toggles inspect element mode and switches tooltip and aria-pressed states', async () => {
+    const mounted = mountBrowser({ url: 'https://inspect.example/' })
+    await waitFor(() => { expect(mounted.view.container.querySelector('iframe')?.getAttribute('src')).toBe('https://inspect.example/') })
+    const inspectButton = mounted.view.getByRole('button', { name: zh['inspect.enable'] })
+    expect(inspectButton.getAttribute('aria-pressed')).toBe('false')
+
+    fireEvent.click(inspectButton)
+    expect(inspectButton.getAttribute('aria-pressed')).toBe('true')
+    expect(inspectButton.getAttribute('aria-label')).toBe(zh['inspect.disable'])
+
+    fireEvent.click(inspectButton)
+    expect(inspectButton.getAttribute('aria-pressed')).toBe('false')
+    expect(inspectButton.getAttribute('aria-label')).toBe(zh['inspect.enable'])
+  })
+
 })

@@ -5,6 +5,7 @@ import {
   Button,
   IconChevronLeftOutlineRegular,
   IconChevronRightOutlineRegular,
+  IconInspectOutlineRegular,
   IconLinkOutlineRegular,
   IconRefreshOutlineRegular, Tooltip,
   IconRightUpOutlineRegular,
@@ -19,6 +20,133 @@ import type { BrowserStore } from '../browser/store.ts'
 import css from './Browser.module.css'
 
 const EMPTY_FRAME = emptyBrowserFrame()
+
+const INSPECT_CLEANUP_SCRIPT = `
+(() => {
+  try {
+    if (window.__dshInspectCleanup) window.__dshInspectCleanup();
+    const old = document.getElementById('__dsh_inspect_overlay__');
+    if (old && old.parentNode) old.parentNode.removeChild(old);
+    if (document.body) document.body.style.cursor = '';
+  } catch {}
+})();
+`
+
+const INSPECT_SCRIPT = `
+(() => {
+  try {
+    if (window.__dshInspectCleanup) window.__dshInspectCleanup();
+
+    const OVERLAY_ID = '__dsh_inspect_overlay__';
+    let overlay = document.getElementById(OVERLAY_ID);
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.id = OVERLAY_ID;
+      overlay.style.cssText = 'position:fixed;display:none;pointer-events:none;z-index:2147483647;border:2px solid #3b82f6;background:rgba(59,130,246,0.12);box-sizing:border-box;border-radius:2px;';
+      const badge = document.createElement('div');
+      badge.style.cssText = 'position:absolute;top:-24px;left:-2px;background:#0f172a;color:#f8fafc;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;font-weight:600;padding:2px 8px;border-radius:4px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,0.3);border:1px solid #3b82f6;pointer-events:none;';
+      overlay.appendChild(badge);
+      document.documentElement.appendChild(overlay);
+    }
+
+    const badge = overlay.firstElementChild;
+
+    function getSelector(el) {
+      if (!el || el === document.body || el === document.documentElement) return el ? el.tagName.toLowerCase() : '';
+      const parts = [];
+      let curr = el;
+      while (curr && curr !== document.documentElement && parts.length < 4) {
+        let part = curr.tagName.toLowerCase();
+        if (curr.id) {
+          part += '#' + curr.id;
+          parts.unshift(part);
+          break;
+        }
+        if (curr.classList && curr.classList.length > 0) {
+          const cls = Array.from(curr.classList).filter(c => !c.startsWith('__dsh')).slice(0, 2).join('.');
+          if (cls) part += '.' + cls;
+        }
+        parts.unshift(part);
+        curr = curr.parentElement;
+      }
+      return parts.join(' > ');
+    }
+
+    function onMouseMove(e) {
+      const el = e.target;
+      if (!el || el === overlay || overlay.contains(el)) {
+        overlay.style.display = 'none';
+        return;
+      }
+      const rect = el.getBoundingClientRect();
+      if (rect.width === 0 || rect.height === 0) {
+        overlay.style.display = 'none';
+        return;
+      }
+      overlay.style.display = 'block';
+      overlay.style.top = rect.top + 'px';
+      overlay.style.left = rect.left + 'px';
+      overlay.style.width = rect.width + 'px';
+      overlay.style.height = rect.height + 'px';
+
+      const tag = el.tagName.toLowerCase();
+      const cls = el.className && typeof el.className === 'string' ? '.' + el.className.trim().split(/\\s+/).slice(0, 2).join('.') : '';
+      const id = el.id ? '#' + el.id : '';
+      const dims = Math.round(rect.width) + ' × ' + Math.round(rect.height);
+      badge.textContent = tag + id + cls + ' (' + dims + ')';
+      badge.style.top = rect.top < 26 ? '2px' : '-24px';
+    }
+
+    function onClick(e) {
+      if (e.target === overlay || overlay.contains(e.target)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+
+      const target = e.target;
+      const selector = getSelector(target);
+      const tag = target.tagName.toLowerCase();
+      const text = (target.textContent || '').trim().slice(0, 200);
+
+      const clone = target.cloneNode(false);
+      if (text) clone.textContent = text.length > 80 ? text.slice(0, 77) + '...' : text;
+      const outerHtml = clone.outerHTML || ('<' + tag + '>');
+
+      console.log('__DSH_INSPECT__:' + JSON.stringify({
+        tag,
+        selector,
+        text,
+        outerHtml,
+        location: window.location.href,
+      }));
+
+      cleanup();
+    }
+
+    function onKeyDown(e) {
+      if (e.key === 'Escape') {
+        console.log('__DSH_INSPECT_CANCEL__');
+        cleanup();
+      }
+    }
+
+    function cleanup() {
+      window.removeEventListener('mousemove', onMouseMove, true);
+      window.removeEventListener('click', onClick, true);
+      window.removeEventListener('keydown', onKeyDown, true);
+      if (overlay && overlay.parentNode) overlay.parentNode.removeChild(overlay);
+      if (document.body) document.body.style.cursor = '';
+      window.__dshInspectCleanup = null;
+    }
+
+    window.addEventListener('mousemove', onMouseMove, true);
+    window.addEventListener('click', onClick, true);
+    window.addEventListener('keydown', onKeyDown, true);
+    window.__dshInspectCleanup = cleanup;
+    if (document.body) document.body.style.cursor = 'crosshair';
+  } catch {}
+})();
+`
 
 function SandboxPolicyIcon({ sandboxed }: { readonly sandboxed: boolean }): ReactNode {
   return (
@@ -43,6 +171,28 @@ function useBrowserDraft(url: string | undefined, revision: number): readonly [s
     (value) => { setEdit({ revision, value }) }]
 }
 
+interface ElectronWebviewInspectable extends HTMLElement {
+  executeJavaScript(code: string): Promise<unknown>
+}
+
+function isInspectableWebview(element: Element | null): element is ElectronWebviewInspectable {
+  return element !== null && 'executeJavaScript' in element && typeof element.executeJavaScript === 'function'
+}
+
+interface InspectPayload {
+  readonly tag: string
+  readonly selector: string
+  readonly text?: string
+  readonly outerHtml: string
+  readonly location?: string
+}
+
+function isInspectPayload(data: unknown): data is InspectPayload {
+  return typeof data === 'object' && data !== null
+    && 'selector' in data && typeof data.selector === 'string'
+    && 'outerHtml' in data && typeof data.outerHtml === 'string'
+}
+
 /** Render provider-neutral navigation state and optional controls. */
 export function BrowserBody(props: BrowserBodyProps): ReactNode {
   const { mount, loadUrl, restore, goBack, goForward, reload, setSandbox, useBrowserState, useStore, useTabInfo, t } = props
@@ -58,6 +208,69 @@ export function BrowserBody(props: BrowserBodyProps): ReactNode {
   const restoreTarget = state === undefined ? currentBrowserTarget(initial.current) : state.restoreTarget
   const target = frame.target ?? restoreTarget
   const [draft, setDraft] = useBrowserDraft(target?.url ?? initialUrl.current, state?.addressRevision ?? 0)
+  const [inspecting, setInspecting] = useState(false)
+  const [toast, setToast] = useState<string>()
+
+  useEffect(() => {
+    const host = document.getElementById(viewportId)
+    const element = host?.querySelector('webview') ?? null
+    if (!isInspectableWebview(element)) return
+    const webview = element
+
+    if (!inspecting) {
+      try { void webview.executeJavaScript(INSPECT_CLEANUP_SCRIPT) } catch {}
+      return
+    }
+
+    const onConsoleMessage = (event: Event): void => {
+      const msg = 'message' in event && typeof event.message === 'string' ? event.message : ''
+      if (msg.startsWith('__DSH_INSPECT__:')) {
+        try {
+          const raw: unknown = JSON.parse(msg.slice(16))
+          if (isInspectPayload(raw)) {
+            setInspecting(false)
+            const prompt = [
+              'Please inspect and modify this element:',
+              `- **Selector**: \`${raw.selector}\``,
+              `- **Element**: \`${raw.outerHtml}\``,
+              raw.text ? `- **Text**: "${raw.text}"` : '',
+              raw.location ? `- **Page URL**: ${raw.location}` : '',
+            ].filter(Boolean).join('\n')
+
+            void navigator.clipboard.writeText(prompt).then(() => {
+              setToast(t('inspect.copied'))
+            }).catch(() => {
+              setToast(t('inspect.copied'))
+            })
+          }
+        } catch {}
+      } else if (msg === '__DSH_INSPECT_CANCEL__') {
+        setInspecting(false)
+      }
+    }
+
+    const onNavigated = (): void => {
+      setInspecting(false)
+    }
+
+    webview.addEventListener('console-message', onConsoleMessage)
+    webview.addEventListener('did-navigate', onNavigated)
+    try {
+      void webview.executeJavaScript(INSPECT_SCRIPT)
+    } catch {}
+
+    return () => {
+      webview.removeEventListener('console-message', onConsoleMessage)
+      webview.removeEventListener('did-navigate', onNavigated)
+      try { void webview.executeJavaScript(INSPECT_CLEANUP_SCRIPT) } catch {}
+    }
+  }, [inspecting, viewportId, mountEpoch, t])
+
+  useEffect(() => {
+    if (toast === undefined) return
+    const timer = setTimeout(() => { setToast(undefined) }, 3200)
+    return () => { clearTimeout(timer) }
+  }, [toast])
 
   useLayoutEffect(() => {
     const hide = mount({
@@ -99,6 +312,19 @@ export function BrowserBody(props: BrowserBodyProps): ReactNode {
         <button type="button" className={css.tool} aria-label={t('external')} title={t('external')} disabled={externalUrl === undefined}
           onClick={externalUrl === undefined ? undefined : () => { window.open(externalUrl, '_blank', 'noopener,noreferrer') }}
         ><IconRightUpOutlineRegular size={14} /></button>
+        <Tooltip label={t(inspecting ? 'inspect.disable' : 'inspect.enable')} side="bottom" delayMs={500}>
+          <button
+            type="button"
+            className={[css.tool, inspecting ? css.inspectActive : ''].join(' ')}
+            aria-label={t(inspecting ? 'inspect.disable' : 'inspect.enable')}
+            title={t(inspecting ? 'inspect.disable' : 'inspect.enable')}
+            aria-pressed={inspecting}
+            disabled={target === undefined || mountEpoch === 0}
+            onClick={() => { setInspecting(prev => !prev) }}
+          >
+            <IconInspectOutlineRegular size={14} />
+          </button>
+        </Tooltip>
         {sandboxed !== undefined && <button
           type="button"
           className={[css.tool, sandboxed ? '' : css.sandboxOff].join(' ')}
@@ -113,6 +339,11 @@ export function BrowserBody(props: BrowserBodyProps): ReactNode {
         ? t('load.failed.detail', { code: String(error.code), description: error.description })
         : t('load.failed')}</div>}
       {failure !== undefined && <div className={css.failure} role="alert">{t(`error.${failure}`)}</div>}
+      {toast !== undefined && (
+        <div className={css.toast} role="status">
+          {toast}
+        </div>
+      )}
       <div className={css.content} aria-busy={frame.loading}>
         <div id={viewportId} className={css.viewport} aria-label={t('type.label')} />
         {restoreTarget !== undefined && <section className={css.restore} aria-label={t('restore.previous')}>
