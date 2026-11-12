@@ -117,7 +117,128 @@ const INSPECT_SCRIPT = `
     toolbar.appendChild(btnCancel);
     root.appendChild(toolbar);
 
-    document.documentElement.appendChild(root);
+
+    // Floating Chat Card (Cursor-style prompt popover)
+    const chatBox = document.createElement('div');
+    chatBox.style.cssText = 'position:fixed;display:none;width:360px;max-width:calc(100vw - 32px);background:rgba(15,23,42,0.96);backdrop-filter:blur(12px);border:1px solid #3b82f6;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.5);color:#f8fafc;z-index:30;pointer-events:auto;overflow:hidden;box-sizing:border-box;font-family:system-ui,-apple-system,sans-serif;';
+
+    const chatHeader = document.createElement('div');
+    chatHeader.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.08);background:rgba(15,23,42,0.6);';
+
+    const targetLabel = document.createElement('div');
+    targetLabel.style.cssText = 'display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:#60a5fa;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:280px;';
+    targetLabel.textContent = '🎯 Target';
+
+    const closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.textContent = '✕';
+    closeBtn.style.cssText = 'background:transparent;border:0;color:#94a3b8;cursor:pointer;font-size:14px;padding:2px 6px;line-height:1;border-radius:4px;';
+
+    chatHeader.appendChild(targetLabel);
+    chatHeader.appendChild(closeBtn);
+    chatBox.appendChild(chatHeader);
+
+    const chatBody = document.createElement('div');
+    chatBody.style.cssText = 'padding:10px 12px;';
+
+    const promptInput = document.createElement('textarea');
+    promptInput.placeholder = 'Tulis instruksi atau pertanyaan untuk AI... (Enter untuk kirim, Shift+Enter untuk baris baru)';
+    promptInput.style.cssText = 'width:100%;min-height:64px;max-height:130px;background:#090d16;color:#f8fafc;border:1px solid #334155;border-radius:6px;padding:8px 10px;font-family:inherit;font-size:13px;resize:vertical;outline:none;box-sizing:border-box;line-height:1.4;';
+
+    chatBody.appendChild(promptInput);
+    chatBox.appendChild(chatBody);
+
+    const chatFooter = document.createElement('div');
+    chatFooter.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-top:1px solid rgba(255,255,255,0.08);background:rgba(15,23,42,0.4);';
+
+    const hint = document.createElement('span');
+    hint.style.cssText = 'font-size:11px;color:#64748b;';
+    hint.textContent = 'Enter untuk kirim';
+
+    const actions = document.createElement('div');
+    actions.style.cssText = 'display:flex;align-items:center;gap:6px;';
+
+    const copyBtn = document.createElement('button');
+    copyBtn.type = 'button';
+    copyBtn.textContent = '📋 Copy';
+    copyBtn.style.cssText = 'background:#1e293b;border:1px solid #334155;color:#cbd5e1;padding:5px 10px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:500;';
+
+    const sendBtn = document.createElement('button');
+    sendBtn.type = 'button';
+    sendBtn.textContent = '🚀 Kirim ke Chat ⏎';
+    sendBtn.style.cssText = 'background:#2563eb;border:0;color:#ffffff;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;display:flex;align-items:center;gap:4px;';
+
+    actions.appendChild(copyBtn);
+    actions.appendChild(sendBtn);
+    chatFooter.appendChild(hint);
+    chatFooter.appendChild(actions);
+    chatBox.appendChild(chatFooter);
+
+    root.appendChild(chatBox);
+
+    let currentPending = null;
+
+    function showChatBox(data) {
+      currentPending = data;
+      const rect = data.rect;
+      targetLabel.textContent = '🎯 ' + (data.selector || (Math.round(rect.width) + ' × ' + Math.round(rect.height) + ' px'));
+      promptInput.value = '';
+
+      const pad = 12;
+      const boxW = Math.min(360, window.innerWidth - pad * 2);
+      let left = rect.x;
+      if (left + boxW > window.innerWidth - pad) {
+        left = window.innerWidth - boxW - pad;
+      }
+      left = Math.max(pad, left);
+
+      let top = rect.y + rect.height + 8;
+      if (top + 180 > window.innerHeight - pad) {
+        top = rect.y - 180;
+      }
+      if (top < pad) {
+        top = Math.max(pad, window.innerHeight - 190);
+      }
+
+      chatBox.style.width = boxW + 'px';
+      chatBox.style.left = Math.round(left) + 'px';
+      chatBox.style.top = Math.round(top) + 'px';
+      chatBox.style.display = 'block';
+
+      setTimeout(() => { promptInput.focus(); }, 60);
+    }
+
+    function hideChatBox() {
+      chatBox.style.display = 'none';
+      currentPending = null;
+    }
+
+    function submitChat(isCopyOnly) {
+      if (!currentPending) return;
+      const userPrompt = (promptInput.value || '').trim();
+      const payload = {
+        ...currentPending,
+        userPrompt: userPrompt || undefined,
+        isCopyOnly: isCopyOnly === true,
+      };
+      sendPayload(payload);
+      cleanup();
+    }
+
+    sendBtn.addEventListener('click', (e) => { e.stopPropagation(); submitChat(false); });
+    copyBtn.addEventListener('click', (e) => { e.stopPropagation(); submitChat(true); });
+    closeBtn.addEventListener('click', (e) => { e.stopPropagation(); hideChatBox(); });
+
+    promptInput.addEventListener('keydown', (e) => {
+      e.stopPropagation();
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        submitChat(false);
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        hideChatBox();
+      }
+    });
 
     let mode = 'snip';
     let isMouseDown = false;
@@ -158,6 +279,8 @@ const INSPECT_SCRIPT = `
       console.log('__DSH_INSPECT_CANCEL__');
       cleanup();
     });
+    document.documentElement.appendChild(root);
+
 
     function clearSnipCanvas() {
       const sctx = snipCanvas.getContext('2d');
@@ -232,7 +355,8 @@ const INSPECT_SCRIPT = `
 
     function onMouseMove(e) {
       resizeCanvases();
-      if (toolbar.contains(e.target)) return;
+      if (toolbar.contains(e.target) || chatBox.contains(e.target)) return;
+      if (chatBox.style.display !== 'none') return;
 
       if (!isMouseDown) {
         if (mode === 'snip' && !activeRect) {
@@ -279,7 +403,7 @@ const INSPECT_SCRIPT = `
     }
 
     function onMouseDown(e) {
-      if (toolbar.contains(e.target)) return;
+      if (toolbar.contains(e.target) || chatBox.contains(e.target)) return;
       e.preventDefault();
       e.stopPropagation();
       e.stopImmediatePropagation();
@@ -299,7 +423,7 @@ const INSPECT_SCRIPT = `
     }
 
     function onMouseUp(e) {
-      if (toolbar.contains(e.target)) return;
+      if (toolbar.contains(e.target) || chatBox.contains(e.target)) return;
       if (!isMouseDown) return;
       isMouseDown = false;
       e.preventDefault();
@@ -315,6 +439,21 @@ const INSPECT_SCRIPT = `
             const rect = target.getBoundingClientRect();
             captureSingleElement(target, rect);
           }
+        } else if (activeRect) {
+          const elementsFound = [];
+          const cx = activeRect.x + activeRect.width / 2;
+          const cy = activeRect.y + activeRect.height / 2;
+          const centerEl = document.elementFromPoint(cx, cy);
+          if (centerEl && !root.contains(centerEl)) {
+            elementsFound.push(getSelector(centerEl));
+          }
+          showChatBox({
+            mode: 'snip',
+            rect: activeRect,
+            elements: elementsFound,
+            location: window.location.href,
+            doodleDataUrl: hasDoodles ? doodleCanvas.toDataURL('image/png') : undefined,
+          });
         }
       }
     }
@@ -327,7 +466,7 @@ const INSPECT_SCRIPT = `
       if (text) clone.textContent = text.length > 80 ? text.slice(0, 77) + '...' : text;
       const outerHtml = clone.outerHTML || ('<' + tag + '>');
 
-      sendPayload({
+      showChatBox({
         mode: 'element',
         rect: { x: rect.left, y: rect.top, width: rect.width, height: rect.height },
         selector,
@@ -336,8 +475,8 @@ const INSPECT_SCRIPT = `
         location: window.location.href,
         doodleDataUrl: hasDoodles ? doodleCanvas.toDataURL('image/png') : undefined,
       });
-      cleanup();
     }
+
 
     function finishCapture() {
       let rect = activeRect;
@@ -374,14 +513,13 @@ const INSPECT_SCRIPT = `
         elementsFound.push(getSelector(centerEl));
       }
 
-      sendPayload({
+      showChatBox({
         mode: hasDoodles ? 'draw' : 'snip',
         rect,
         elements: elementsFound,
         location: window.location.href,
         doodleDataUrl: hasDoodles ? doodleCanvas.toDataURL('image/png') : undefined,
       });
-      cleanup();
     }
 
     function sendPayload(data) {
@@ -390,14 +528,22 @@ const INSPECT_SCRIPT = `
 
     function onKeyDown(e) {
       if (e.key === 'Escape') {
-        console.log('__DSH_INSPECT_CANCEL__');
-        cleanup();
+        if (chatBox.style.display !== 'none') {
+          hideChatBox();
+        } else {
+          console.log('__DSH_INSPECT_CANCEL__');
+          cleanup();
+        }
       } else if (e.key === 'Enter') {
-        finishCapture();
-      } else if (e.key === 'd' || e.key === 'D') {
-        setMode('draw');
-      } else if (e.key === 's' || e.key === 'S') {
-        setMode('snip');
+        if (chatBox.style.display === 'none') {
+          finishCapture();
+        }
+      } else if (chatBox.style.display === 'none') {
+        if (e.key === 'd' || e.key === 'D') {
+          setMode('draw');
+        } else if (e.key === 's' || e.key === 'S') {
+          setMode('snip');
+        }
       }
     }
 
@@ -468,6 +614,8 @@ interface InspectPayload {
   readonly elements?: readonly string[]
   readonly doodleDataUrl?: string
   readonly location?: string
+  readonly userPrompt?: string
+  readonly isCopyOnly?: boolean
 }
 
 function isInspectPayload(data: unknown): data is InspectPayload {
@@ -481,7 +629,12 @@ function isInspectPayload(data: unknown): data is InspectPayload {
 }
 
 function formatInspectPrompt(payload: InspectPayload): string {
-  const lines: string[] = ['Please inspect and modify this part of the design:']
+  const lines: string[] = []
+  if (payload.userPrompt) {
+    lines.push(payload.userPrompt, '', '---', '**Context**:')
+  } else {
+    lines.push('Please inspect and modify this part of the design:')
+  }
   if (payload.selector) {
     lines.push(`- **Selected Element**: \`${payload.selector}\``)
   }
@@ -616,6 +769,11 @@ export function BrowserBody(props: BrowserBodyProps): ReactNode {
                 await navigator.clipboard.writeText(prompt)
                 setToast(t('inspect.copied'))
               }
+              try {
+                if (typeof localStorage !== 'undefined' && props.sessionId) {
+                  localStorage.setItem(`dsh.conversation.${props.sessionId}`, JSON.stringify({ text: prompt, references: [] }))
+                }
+              } catch {}
             })()
           }
         } catch {}
