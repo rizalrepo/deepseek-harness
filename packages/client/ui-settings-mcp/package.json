@@ -1,0 +1,25 @@
+{
+  "name": "@deepseek-ai/dsh-client-ui-settings-mcp",
+  "description": "Visual settings interface for managing Model Context Protocol (MCP) servers in Settings",
+  "version": "0.2.2-rc.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./locale/*.json": "./locale/*.json"
+  },
+  "dsh": {
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-settings"
+      ]
+    }
+  },
+  "files": [
+    "lib/index.js",
+    "lib/client.js",
+    "locale/*.json"
+  ]
+}
