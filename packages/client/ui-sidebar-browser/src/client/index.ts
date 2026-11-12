@@ -87,8 +87,31 @@ export function apply(ctx: Context): void {
           existing.rebind(actions)
           return existing
         }
+        const sendToChat = (prompt: string, submit = true): boolean => {
+          try {
+            const conversation = scope.get('conversation') as {
+              readonly input?: {
+                shell(id: string): {
+                  setDraft(text: string): void
+                  submit(mode?: string, source?: string): void
+                }
+              }
+            } | undefined
+            if (conversation?.input && sessionId) {
+              const shell = conversation.input.shell(sessionId)
+              shell.setDraft(prompt)
+              if (submit) {
+                shell.submit('queue', 'click')
+              }
+              return true
+            }
+          } catch (error) {
+            console.warn('ui-sidebar-browser: sendToChat failed', error)
+          }
+          return false
+        }
         const controller = createBrowserControllers(actions, factory(sessionId), tabId =>
-          openTabs.getSnapshot().some(tab => tab.sessionId === sessionId && tab.tabId === tabId))
+          openTabs.getSnapshot().some(tab => tab.sessionId === sessionId && tab.tabId === tabId), sendToChat)
         controllers.set(sessionId, controller)
         return controller
       },

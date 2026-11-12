@@ -698,7 +698,7 @@ function mergeDoodleOnScreenshot(
 
 /** Render provider-neutral navigation state and optional controls. */
 export function BrowserBody(props: BrowserBodyProps): ReactNode {
-  const { mount, loadUrl, restore, goBack, goForward, reload, setSandbox, useBrowserState, useStore, useTabInfo, t } = props
+  const { mount, loadUrl, restore, goBack, goForward, reload, setSandbox, sendToChat, useBrowserState, useStore, useTabInfo, t } = props
   const { tab } = useTabInfo()
   useEffect(() => tab.actions.bindCommands({ refresh: () => { reload(tab.id) } }), [tab.actions, tab.id, reload])
   const saved = useStore(state => state.byTab[tab.id])
@@ -764,11 +764,21 @@ export function BrowserBody(props: BrowserBodyProps): ReactNode {
 
               try {
                 await navigator.clipboard.write([new ClipboardItem(clipboardItems)])
-                setToast(imageBlob !== undefined ? t('inspect.copiedWithImage') : t('inspect.copied'))
               } catch {
                 await navigator.clipboard.writeText(prompt)
-                setToast(t('inspect.copied'))
               }
+
+              let sentDirectly = false
+              if (raw.isCopyOnly !== true && typeof sendToChat === 'function') {
+                sentDirectly = sendToChat(prompt, true)
+              }
+
+              if (sentDirectly) {
+                setToast(t('inspect.sentToChat'))
+              } else {
+                setToast(imageBlob !== undefined ? t('inspect.copiedWithImage') : t('inspect.copied'))
+              }
+
               try {
                 if (typeof localStorage !== 'undefined' && props.sessionId) {
                   localStorage.setItem(`dsh.conversation.${props.sessionId}`, JSON.stringify({ text: prompt, references: [] }))
@@ -797,7 +807,7 @@ export function BrowserBody(props: BrowserBodyProps): ReactNode {
       webview.removeEventListener('did-navigate', onNavigated)
       try { void webview.executeJavaScript(INSPECT_CLEANUP_SCRIPT) } catch {}
     }
-  }, [inspecting, viewportId, mountEpoch, t])
+  }, [inspecting, viewportId, mountEpoch, sendToChat, props.sessionId, t])
 
   useEffect(() => {
     if (toast === undefined) return

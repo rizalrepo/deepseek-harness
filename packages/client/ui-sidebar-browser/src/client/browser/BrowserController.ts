@@ -202,6 +202,8 @@ export interface BrowserInjected {
   reload(tabId: TabId): void
   /** @param tabId - owning tab. @param enabled - provider's optional sandbox control. */
   setSandbox(tabId: TabId, enabled: boolean): void
+  /** Send a captured design prompt directly to the session chat. */
+  sendToChat?: ((prompt: string, submit?: boolean) => boolean) | undefined
 }
 
 /**
@@ -212,7 +214,7 @@ export interface BrowserInjected {
  * @returns tab callbacks.
  */
 export function createBrowserControllers(actions: BoundActions<BrowserStore>, createPage: BrowserPageFactory,
-  isTabOpen: (tabId: TabId) => boolean): BrowserInjected {
+  isTabOpen: (tabId: TabId) => boolean, sendToChat?: (prompt: string, submit?: boolean) => boolean): BrowserInjected {
   let currentActions = actions
   const controllers = new Map<TabId, {
     readonly signal: AbortSignal
@@ -263,5 +265,6 @@ export function createBrowserControllers(actions: BoundActions<BrowserStore>, cr
     goForward: (id) => { controller(id)?.goForward() },
     reload: (id) => { controller(id)?.reload() },
     setSandbox: (id, enabled) => { controller(id)?.setSandbox(enabled) },
+    ...sendToChat === undefined ? {} : { sendToChat },
   }
 }
