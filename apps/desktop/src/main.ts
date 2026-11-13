@@ -1065,7 +1065,7 @@ async function main(): Promise<void> {
           const result = await ordinaryMessageBox({ title: locale.messages.updateCheckTitle,
             message: formatDesktopMessage(locale.messages.updateAvailable, { version: state.version ?? '' }),
             detail: locale.messages.updateDetail,
-            buttons: [locale.messages.updateDownload], cancelId: 1 })
+            buttons: [locale.messages.updateDownload, locale.messages.later], cancelId: 1 })
           if (result.response !== 0) return
         }
         if (!isMandatory() && state.version !== undefined) {

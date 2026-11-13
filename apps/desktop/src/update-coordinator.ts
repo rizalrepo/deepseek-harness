@@ -11,8 +11,11 @@ import { DesktopUpdatePreparationError, downloadFailureDetails } from './update-
 import type { DesktopUpdateChannel } from './update-channel.ts'
 import { selectUpdateChannel } from './updates/electron-updater/channel.ts'
 import { discardDesktopUpdate } from './updates/electron-updater/discard.ts'
+import { LinuxGitUpdater } from './updates/linux-git-updater.ts'
 
 const { autoUpdater } = electronUpdater
+/** Native Linux installs run unpackaged from the install.sh git checkout. */
+const LINUX_CHECKOUT = process.platform === 'linux' && !app.isPackaged
 
 /** Owns one updater target until its download and installation settle. */
 export class DesktopUpdateCoordinator {
@@ -60,12 +63,14 @@ export class DesktopUpdateCoordinator {
   constructor(
     private readonly publish: (state: DesktopUpdateState) => DesktopUpdateState,
     private readonly beforeRestart: () => Promise<boolean>,
-    private readonly updater: AppUpdater = autoUpdater,
-    private readonly enabled: () => boolean = () => app.isPackaged && existsSync(join(process.resourcesPath, 'app-update.yml')),
+    // Native Linux installs are git checkouts; electron-updater has no Linux feed for them.
+    private readonly updater: AppUpdater = LINUX_CHECKOUT ? (new LinuxGitUpdater() as unknown as AppUpdater) : autoUpdater,
+    private readonly enabled: () => boolean = () => LINUX_CHECKOUT
+      || (app.isPackaged && existsSync(join(process.resourcesPath, 'app-update.yml'))),
     private readonly currentVersion: () => string = () => app.getVersion(),
     private readonly downloadResult?: (success: boolean, reason?: string) => void,
     private channel: DesktopUpdateChannel = 'nightly',
-    private readonly discard: (updater: AppUpdater) => Promise<void> = discardDesktopUpdate,
+    private readonly discard: (updater: AppUpdater) => Promise<void> = LINUX_CHECKOUT ? async () => {} : discardDesktopUpdate,
   ) {
     if (updater === autoUpdater) {
       // electron-updater omits this internal transport property from its public declarations.

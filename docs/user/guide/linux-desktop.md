@@ -149,6 +149,12 @@ update-desktop-database ~/.local/share/applications 2>/dev/null || true
 
 The app should now appear in your application launcher and can be pinned to the dock.
 
+## In-app updates
+
+The app checks the checkout's GitHub remote (`fork` if present, else `origin`) for new commits on `master` at startup and every 10 minutes. A newer commit shows the Update indicator; **Check for Updates** in the app menu runs the check on demand.
+
+Choosing Update runs in the background: `git merge --ff-only` to the fetched commit, `pnpm install`, `pnpm run build:artifacts`, the desktop build, `prepare:primary-runtime`, and `prepare:dev-project`. When it finishes, **Install and Restart** stops the backend and relaunches the app. Local edits or commits that prevent a fast-forward make the update fail with the git error instead of being overwritten; the running app is unaffected.
+
 ## 5. Update script (optional)
 
 Create `~/.local/bin/update-dsh-desktop` to pull upstream changes and rebuild:
@@ -233,6 +239,6 @@ Binding version warnings like `Binding to wl_shm version 1 but version 2 is avai
 
 ## Known limitations
 
-- No auto-update: upstream only ships macOS/Windows installers. Use the update script above.
+- Auto-update is source based (see [In-app updates](#in-app-updates)); upstream only ships macOS/Windows installers.
 - No `.deb`/`.rpm` packaging: the app runs unpackaged from the source checkout.
 - Tray icon may not render on all Linux desktop environments.
