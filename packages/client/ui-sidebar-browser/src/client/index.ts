@@ -119,64 +119,12 @@ export function apply(ctx: Context): void {
             ?? scope.get('sessions')
           const binding = sessionId && sessions ? sessions.binding(sessionId) : undefined
 
-          try {
-            const conversation: ConversationTarget | undefined = activeConversation
-              ?? (ctx.get('conversation') as ConversationTarget | undefined)
-              ?? (scope.get('conversation') as ConversationTarget | undefined)
-            if (conversation?.input && sessionId) {
-              const shell = conversation.input.shell(sessionId)
-              if (imageBlob && typeof conversation.createDrafts === 'function') {
-                const file = new File([imageBlob], 'design-screenshot.png', { type: 'image/png' })
-                const isOrdinary = binding?.session.getSnapshot().subagent === null
-                const drafts = conversation.createDrafts(sessionId, [file], isOrdinary)
-                const ids = drafts.map(d => d.id)
-                if (typeof shell.addFiles === 'function') {
-                  shell.addFiles([], ids)
-                } else if (typeof shell.addAttachments === 'function') {
-                  shell.addAttachments(ids)
-                }
-              }
-              shell.setDraft(prompt)
-              if (submit) {
-                await new Promise(r => setTimeout(r, 60))
-                shell.submit('queue', 'click')
-                const currentDraft = (shell.snapshot?.draft ?? '').trim()
-                if (currentDraft.length > 0 && binding?.session) {
-                  shell.setDraft('')
-                  const parts: Array<{ readonly type: 'text'; readonly text: string } | { readonly type: 'image'; readonly mediaType: 'image/png'; readonly data: string; readonly name?: string }> = [
-                    { type: 'text', text: prompt },
-                  ]
-                  if (imageBlob) {
-                    const { promise, resolve, reject } = Promise.withResolvers<string>()
-                    const reader = new FileReader()
-                    reader.onload = () => {
-                      const res = typeof reader.result === 'string' ? reader.result : ''
-                      resolve(res.slice(res.indexOf(',') + 1))
-                    }
-                    reader.onerror = () => { reject(reader.error ?? new Error('read failed')) }
-                    reader.readAsDataURL(imageBlob)
-                    const base64Data = await promise
-                    if (base64Data) {
-                      parts.push({
-                        type: 'image',
-                        mediaType: 'image/png',
-                        data: base64Data,
-                        name: 'design-screenshot.png',
-                      })
-                    }
-                  }
-                  void binding.session.prompt(parts, 'queue')
-                }
-              }
-              return true
-            }
-          } catch (error) {
-            console.warn('ui-sidebar-browser: sendToChat via shell failed', error)
-          }
-
-          try {
-            if (binding?.session) {
-              const parts: Array<{ readonly type: 'text'; readonly text: string } | { readonly type: 'image'; readonly mediaType: 'image/png'; readonly data: string; readonly name?: string }> = [
+          if (binding?.session) {
+            try {
+              const parts: Array<
+                | { readonly type: 'text'; readonly text: string }
+                | { readonly type: 'image'; readonly mediaType: 'image/png'; readonly data: string; readonly name?: string }
+              > = [
                 { type: 'text', text: prompt },
               ]
               if (imageBlob) {
@@ -198,12 +146,31 @@ export function apply(ctx: Context): void {
                   })
                 }
               }
-              void binding.session.prompt(parts, 'queue')
+              if (submit) {
+                void binding.session.prompt(parts, 'queue')
+              }
+              return true
+            } catch (error) {
+              console.warn('ui-sidebar-browser: sendToChat via session.prompt failed', error)
+            }
+          }
+
+          try {
+            const conversation: ConversationTarget | undefined = activeConversation
+              ?? (ctx.get('conversation') as ConversationTarget | undefined)
+              ?? (scope.get('conversation') as ConversationTarget | undefined)
+            if (conversation?.input && sessionId) {
+              const shell = conversation.input.shell(sessionId)
+              shell.setDraft(prompt)
+              if (submit) {
+                shell.submit('queue', 'click')
+              }
               return true
             }
           } catch (error) {
-            console.warn('ui-sidebar-browser: sendToChat via session prompt failed', error)
+            console.warn('ui-sidebar-browser: sendToChat via shell failed', error)
           }
+
           return false
         }
         const controller = createBrowserControllers(actions, factory(sessionId), tabId =>

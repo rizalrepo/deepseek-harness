@@ -171,7 +171,7 @@ const INSPECT_SCRIPT = `
 
     const sendBtn = document.createElement('button');
     sendBtn.type = 'button';
-    sendBtn.textContent = 'Send ⏎';
+    sendBtn.textContent = 'Send';
     sendBtn.style.cssText = 'background:#2563eb;border:0;color:#ffffff;padding:5px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;display:flex;align-items:center;gap:4px;';
 
     actions.appendChild(copyBtn);
@@ -625,41 +625,11 @@ function isInspectPayload(data: unknown): data is InspectPayload {
 }
 
 function formatInspectPrompt(payload: InspectPayload): string {
-  const lines: string[] = []
-  if (payload.userPrompt) {
-    lines.push(payload.userPrompt, '', '---', '**Design Context**:')
-  } else {
-    lines.push('Please inspect and modify these selected design elements:')
+  const userText = (payload.userPrompt ?? '').trim()
+  if (userText.length > 0) {
+    return userText
   }
-  if (payload.selectedElements && payload.selectedElements.length > 0) {
-    lines.push(`- **Selected Elements (${String(payload.selectedElements.length)})**:`)
-    payload.selectedElements.forEach((item, index) => {
-      lines.push(`  ${String(index + 1)}. \`${item.selector}\` (${String(Math.round(item.rect.width))} × ${String(Math.round(item.rect.height))} px)`)
-      if (item.text) lines.push(`     - Text: "${item.text}"`)
-      if (item.outerHtml) lines.push(`     - HTML: \`${item.outerHtml}\``)
-    })
-  } else {
-    if (payload.selector) {
-      lines.push(`- **Selected Element**: \`${payload.selector}\``)
-    }
-    if (payload.outerHtml) {
-      lines.push(`- **Element HTML**: \`${payload.outerHtml}\``)
-    }
-    if (payload.text) {
-      lines.push(`- **Text Content**: "${payload.text}"`)
-    }
-  }
-  if (payload.elements && payload.elements.length > 0 && (!payload.selectedElements || payload.selectedElements.length === 0)) {
-    lines.push('- **Elements in Region**:')
-    for (const el of payload.elements.slice(0, 5)) {
-      lines.push(`  - \`${el}\``)
-    }
-  }
-  lines.push(`- **Captured Region**: ${String(Math.round(payload.rect.width))} × ${String(Math.round(payload.rect.height))} px`)
-  if (payload.location) {
-    lines.push(`- **Page URL**: ${payload.location}`)
-  }
-  return lines.join('\n')
+  return 'Please inspect this design / screenshot.'
 }
 
 function mergeDoodleOnScreenshot(
@@ -765,7 +735,6 @@ export function BrowserBody(props: BrowserBodyProps): ReactNode {
               if (imageBlob !== undefined) {
                 clipboardItems['image/png'] = imageBlob
               }
-
               // 1. Send directly to active conversation chat FIRST
               let sentDirectly = false
               if (raw.isCopyOnly !== true) {
@@ -775,23 +744,6 @@ export function BrowserBody(props: BrowserBodyProps): ReactNode {
                   } catch (err) {
                     console.warn('sendToChat invocation error', err)
                   }
-                }
-                // Fallback: If not sent via service, populate active composer in DOM
-                if (!sentDirectly) {
-                  try {
-                    const card = document.querySelector('[data-composer-card]')
-                    const editor = card?.querySelector('[contenteditable="true"]') as HTMLElement | null
-                    if (editor) {
-                      editor.focus()
-                      editor.textContent = prompt
-                      editor.dispatchEvent(new Event('input', { bubbles: true }))
-                      const sendBtn = card?.querySelector('button[aria-label="Send"], button[aria-label="Kirim"], button[aria-label="发送"]') as HTMLButtonElement | null
-                      if (sendBtn && !sendBtn.disabled) {
-                        sendBtn.click()
-                        sentDirectly = true
-                      }
-                    }
-                  } catch {}
                 }
               }
 
@@ -809,14 +761,7 @@ export function BrowserBody(props: BrowserBodyProps): ReactNode {
                 }
               }
 
-              // 3. Save draft to localStorage as fallback
-              try {
-                if (typeof localStorage !== 'undefined' && props.sessionId) {
-                  localStorage.setItem(`dsh.conversation.${props.sessionId}`, JSON.stringify({ text: prompt, references: [] }))
-                }
-              } catch {}
-
-              // 4. Toast notification
+              // 3. Toast notification
               if (sentDirectly) {
                 setToast(t('inspect.sentToChat'))
               } else {
