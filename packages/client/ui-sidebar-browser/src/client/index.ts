@@ -75,6 +75,7 @@ export function apply(ctx: Context): void {
     addFiles?(references: readonly unknown[], ids: readonly string[]): boolean
     addAttachments?(ids: readonly string[]): boolean
     submit(mode?: string, source?: string): void
+    readonly snapshot?: { readonly draft: string }
   }
   interface ConversationTarget {
     createDrafts?(sessionId: string, files: readonly File[], uploadImages: boolean): readonly DraftItem[]
@@ -137,7 +138,35 @@ export function apply(ctx: Context): void {
               }
               shell.setDraft(prompt)
               if (submit) {
+                await new Promise(r => setTimeout(r, 60))
                 shell.submit('queue', 'click')
+                const currentDraft = (shell.snapshot?.draft ?? '').trim()
+                if (currentDraft.length > 0 && binding?.session) {
+                  shell.setDraft('')
+                  const parts: Array<{ readonly type: 'text'; readonly text: string } | { readonly type: 'image'; readonly mediaType: 'image/png'; readonly data: string; readonly name?: string }> = [
+                    { type: 'text', text: prompt },
+                  ]
+                  if (imageBlob) {
+                    const { promise, resolve, reject } = Promise.withResolvers<string>()
+                    const reader = new FileReader()
+                    reader.onload = () => {
+                      const res = typeof reader.result === 'string' ? reader.result : ''
+                      resolve(res.slice(res.indexOf(',') + 1))
+                    }
+                    reader.onerror = () => { reject(reader.error ?? new Error('read failed')) }
+                    reader.readAsDataURL(imageBlob)
+                    const base64Data = await promise
+                    if (base64Data) {
+                      parts.push({
+                        type: 'image',
+                        mediaType: 'image/png',
+                        data: base64Data,
+                        name: 'design-screenshot.png',
+                      })
+                    }
+                  }
+                  void binding.session.prompt(parts, 'queue')
+                }
               }
               return true
             }

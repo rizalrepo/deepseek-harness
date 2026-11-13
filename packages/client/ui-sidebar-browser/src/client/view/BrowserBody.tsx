@@ -166,13 +166,13 @@ const INSPECT_SCRIPT = `
 
     const copyBtn = document.createElement('button');
     copyBtn.type = 'button';
-    copyBtn.textContent = '📋 Copy';
+    copyBtn.textContent = 'Copy';
     copyBtn.style.cssText = 'background:#1e293b;border:1px solid #334155;color:#cbd5e1;padding:5px 10px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:500;';
 
     const sendBtn = document.createElement('button');
     sendBtn.type = 'button';
-    sendBtn.textContent = '🚀 Kirim ke Chat ⏎';
-    sendBtn.style.cssText = 'background:#2563eb;border:0;color:#ffffff;padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;display:flex;align-items:center;gap:4px;';
+    sendBtn.textContent = 'Send ⏎';
+    sendBtn.style.cssText = 'background:#2563eb;border:0;color:#ffffff;padding:5px 14px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;display:flex;align-items:center;gap:4px;';
 
     actions.appendChild(copyBtn);
     actions.appendChild(sendBtn);
@@ -362,6 +362,12 @@ const INSPECT_SCRIPT = `
       if (selectedElements.length === 0 && !hasDoodles) return;
       const userPrompt = (promptInput.value || '').trim();
 
+      // Immediately hide all design UI elements so they never appear in screenshot
+      if (chatBox) chatBox.style.display = 'none';
+      if (topBar) topBar.style.display = 'none';
+      if (overlayCanvas) overlayCanvas.style.display = 'none';
+      if (doodleCanvas) doodleCanvas.style.display = 'none';
+
       let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
       for (const item of selectedElements) {
         const r = item.el.getBoundingClientRect();
@@ -406,8 +412,12 @@ const INSPECT_SCRIPT = `
         doodleDataUrl: hasDoodles ? doodleCanvas.toDataURL('image/png') : undefined,
       };
 
-      console.log('__DSH_INSPECT__:' + JSON.stringify(payload));
-      cleanup();
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          console.log('__DSH_INSPECT__:' + JSON.stringify(payload));
+          cleanup();
+        });
+      });
     }
 
     sendBtn.addEventListener('click', (e) => { e.stopPropagation(); submitChat(false); });
