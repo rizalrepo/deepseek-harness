@@ -202,8 +202,8 @@ export interface BrowserInjected {
   reload(tabId: TabId): void
   /** @param tabId - owning tab. @param enabled - provider's optional sandbox control. */
   setSandbox(tabId: TabId, enabled: boolean): void
-  /** Send a captured design prompt directly to the session chat. */
-  sendToChat?: ((prompt: string, submit?: boolean) => boolean) | undefined
+  /** Send a captured design prompt and screenshot directly to the session chat. */
+  sendToChat?: ((prompt: string, imageBlob?: Blob, submit?: boolean) => Promise<boolean> | boolean) | undefined
 }
 
 /**
@@ -213,8 +213,12 @@ export interface BrowserInjected {
  * @param isTabOpen - authoritative layout membership, independent of mounted bodies and plugin lifetime.
  * @returns tab callbacks.
  */
-export function createBrowserControllers(actions: BoundActions<BrowserStore>, createPage: BrowserPageFactory,
-  isTabOpen: (tabId: TabId) => boolean, sendToChat?: (prompt: string, submit?: boolean) => boolean): BrowserInjected {
+export function createBrowserControllers(
+  actions: BoundActions<BrowserStore>,
+  createPage: BrowserPageFactory,
+  isTabOpen: (tabId: TabId) => boolean,
+  sendToChat?: (prompt: string, imageBlob?: Blob, submit?: boolean) => Promise<boolean> | boolean,
+): BrowserInjected {
   let currentActions = actions
   const controllers = new Map<TabId, {
     readonly signal: AbortSignal

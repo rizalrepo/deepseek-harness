@@ -649,7 +649,6 @@ function formatInspectPrompt(payload: InspectPayload): string {
   if (payload.location) {
     lines.push(`- **Page URL**: ${payload.location}`)
   }
-  lines.push('\n[Screenshot attached / copied to clipboard — paste with Ctrl+V]')
   return lines.join('\n')
 }
 
@@ -762,7 +761,7 @@ export function BrowserBody(props: BrowserBodyProps): ReactNode {
               if (raw.isCopyOnly !== true) {
                 if (typeof sendToChat === 'function') {
                   try {
-                    sentDirectly = sendToChat(prompt, true)
+                    sentDirectly = await sendToChat(prompt, imageBlob, true)
                   } catch (err) {
                     console.warn('sendToChat invocation error', err)
                   }
