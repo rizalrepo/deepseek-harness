@@ -14,6 +14,7 @@ export interface WebviewElement extends HTMLElement {
   goBack(): void
   goForward(): void
   reload(): void
+  reloadIgnoringCache?(): void
   isLoading(): boolean
 }
 

@@ -35,8 +35,8 @@ export interface BrowserFrame extends HostObservable<BrowserFrameState> {
   goBack(): void
   /** Move forward when the provider reports an available entry. */
   goForward(): void
-  /** Reload the current address without creating a new history entry. */
-  reload(): void
+  /** Reload the current address without creating a new history entry. @param ignoreCache - whether to bypass cache. */
+  reload(ignoreCache?: boolean): void
   /** @returns after the page, listeners and pending initialization have been released; repeated calls join disposal. */
   dispose(): Promise<void>
 }

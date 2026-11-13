@@ -95,8 +95,8 @@ export class ElectronWebViewImpl implements BrowserFrame {
     if (this.store.getSnapshot().canGoForward) this.navigate('goForward')
   }
 
-  /** Reload the actual current page, or retry failed guest creation. */
-  reload(): void {
+  /** Reload the actual current page, or retry failed guest creation. @param ignoreCache - whether to bypass cache. */
+  reload(ignoreCache = false): void {
     const current = this.store.getSnapshot()
     if (this.lifetime.signal.aborted || current.target === undefined) return
     if (!this.ready || current.error !== undefined) {
@@ -105,7 +105,9 @@ export class ElectronWebViewImpl implements BrowserFrame {
       this.store.set({ ...current, loading: true, error: undefined })
       if (this.ready) this.loadPending()
       else this.initialize()
-    } else this.navigate('reload')
+    } else {
+      this.navigate(ignoreCache ? 'reloadIgnoringCache' : 'reload')
+    }
   }
 
   /** @returns after pending initialization and the owned guest have been released. */
@@ -119,13 +121,18 @@ export class ElectronWebViewImpl implements BrowserFrame {
     return this.disposal
   }
 
-  private navigate(command: 'goBack' | 'goForward' | 'reload'): void {
+  private navigate(command: 'goBack' | 'goForward' | 'reload' | 'reloadIgnoringCache'): void {
     if (this.lifetime.signal.aborted || !this.ready || this.element === undefined) return
     this.revision++
     this.pending = undefined
     this.store.set({ ...this.store.getSnapshot(), loading: true, error: undefined })
-    try { this.element[command]() }
-    catch (error) { this.commandFailed(error) }
+    try {
+      if (command === 'reloadIgnoringCache' && typeof this.element.reloadIgnoringCache === 'function') {
+        this.element.reloadIgnoringCache()
+      } else {
+        this.element[command === 'reloadIgnoringCache' ? 'reload' : command]()
+      }
+    } catch (error) { this.commandFailed(error) }
   }
 
   private initialize(): void {

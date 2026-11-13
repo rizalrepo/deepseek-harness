@@ -59,8 +59,8 @@ export class IframeImpl implements BrowserFrame {
   goBack(): void { if (!this.disposed) this.load(this.navigation.back()) }
   /** Move through application-known history while the iframe address remains known. */
   goForward(): void { if (!this.disposed) this.load(this.navigation.forward()) }
-  /** Reload the last application-known address. */
-  reload(): void { if (!this.disposed) this.load(this.navigation.reload()) }
+  /** Reload the last application-known address. @param _ignoreCache - whether to bypass cache. */
+  reload(_ignoreCache = false): void { if (!this.disposed) this.load(this.navigation.reload()) }
 
   /** @returns after the presentation has been removed; repeated calls join disposal. */
   dispose(): Promise<void> {

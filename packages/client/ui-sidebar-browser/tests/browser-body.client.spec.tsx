@@ -295,4 +295,16 @@ describe('BrowserBody', () => {
     expect(inspectButton.getAttribute('aria-label')).toBe(zh['inspect.enable'])
   })
 
+  it('renders hard reload button and full page screenshot button', async () => {
+    const mounted = mountBrowser({ url: 'https://inspect.example/' })
+    await waitFor(() => { expect(mounted.view.container.querySelector('iframe')?.getAttribute('src')).toBe('https://inspect.example/') })
+    const hardReloadBtn = mounted.view.getByRole('button', { name: zh.hardReload })
+    expect(hardReloadBtn).toBeDefined()
+    expect(hardReloadBtn).toHaveProperty('disabled', false)
+
+    const screenshotBtn = mounted.view.getByRole('button', { name: zh.screenshotFullPage })
+    expect(screenshotBtn).toBeDefined()
+    expect(screenshotBtn).toHaveProperty('disabled', false)
+  })
+
 })

@@ -118,10 +118,10 @@ export class BrowserController implements HostObservable<BrowserControllerState>
   goBack(): void { this.command(() => { this.page.frame.goBack() }) }
   /** Delegate Forward to the page's navigation provider. */
   goForward(): void { this.command(() => { this.page.frame.goForward() }) }
-  /** Restore a saved address, or reload the already requested page. */
-  reload(): void {
+  /** Restore a saved address, or reload the already requested page. @param ignoreCache - whether to bypass cache. */
+  reload(ignoreCache = false): void {
     if (this.store.getSnapshot().restoreTarget !== undefined) this.restore()
-    else this.command(() => { this.page.frame.reload() })
+    else this.command(() => { this.page.frame.reload(ignoreCache) })
   }
 
   /**
@@ -198,8 +198,8 @@ export interface BrowserInjected {
   goBack(tabId: TabId): void
   /** @param tabId - owning tab. */
   goForward(tabId: TabId): void
-  /** Restore a saved address or reload its page. @param tabId - owning tab. */
-  reload(tabId: TabId): void
+  /** Restore a saved address or reload its page. @param tabId - owning tab. @param ignoreCache - bypass cache. */
+  reload(tabId: TabId, ignoreCache?: boolean): void
   /** @param tabId - owning tab. @param enabled - provider's optional sandbox control. */
   setSandbox(tabId: TabId, enabled: boolean): void
   /** Send a captured design prompt and screenshot directly to the session chat. */
@@ -267,7 +267,7 @@ export function createBrowserControllers(
     restore: (id) => { controller(id)?.restore() },
     goBack: (id) => { controller(id)?.goBack() },
     goForward: (id) => { controller(id)?.goForward() },
-    reload: (id) => { controller(id)?.reload() },
+    reload: (id, ignoreCache) => { controller(id)?.reload(ignoreCache) },
     setSandbox: (id, enabled) => { controller(id)?.setSandbox(enabled) },
     ...sendToChat === undefined ? {} : { sendToChat },
   }

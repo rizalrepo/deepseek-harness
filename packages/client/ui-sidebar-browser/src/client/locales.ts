@@ -31,6 +31,10 @@ export const zh = {
   'inspect.copied': '元素 Prompt 已复制到剪贴板！',
   'inspect.copiedWithImage': '截图与 Prompt 已复制到剪贴板！(Ctrl+V 粘贴)',
   'inspect.sentToChat': '已成功发送到对话！',
+  hardReload: '硬性刷新 (忽略缓存)',
+  screenshotFullPage: '整页截图',
+  'screenshot.capturing': '正在截取整页…',
+  'screenshot.fullPageSuccess': '整页截图已生成并发送至对话！',
 } satisfies Record<string, string>
 
 /** Browser dictionary key union. */
@@ -69,6 +73,10 @@ export const en = {
   'inspect.copied': 'Element prompt copied to clipboard!',
   'inspect.copiedWithImage': 'Screenshot and prompt copied to clipboard! (Paste with Ctrl+V)',
   'inspect.sentToChat': 'Prompt sent to chat successfully!',
+  hardReload: 'Hard reload (ignore cache)',
+  screenshotFullPage: 'Full page screenshot',
+  'screenshot.capturing': 'Capturing full page screenshot…',
+  'screenshot.fullPageSuccess': 'Full page screenshot captured & sent to chat!',
 } satisfies Record<SidebarBrowserKey, string>
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
@@ -111,6 +119,10 @@ export const ja = {
   'inspect.copied': '要素のプロンプトをクリップボードにコピーしました！',
   'inspect.copiedWithImage': 'スクリーンショットとプロンプトをコピーしました！(Ctrl+Vで貼り付け)',
   'inspect.sentToChat': 'プロンプトがチャットに送信されました！',
+  hardReload: 'ハード再読み込み (キャッシュ無視)',
+  screenshotFullPage: 'フルページスクリーンショット',
+  'screenshot.capturing': 'フルページを撮影中…',
+  'screenshot.fullPageSuccess': 'フルページスクリーンショットを撮影しチャットに送信しました！',
 } satisfies Record<keyof typeof en, string>
 
 /** Spanish dictionary, checked against the English keys. */
@@ -146,6 +158,10 @@ export const es = {
   'inspect.copied': '¡Prompt del elemento copiado al portapapeles!',
   'inspect.copiedWithImage': '¡Captura y prompt copiados al portapapeles! (Pegar con Ctrl+V)',
   'inspect.sentToChat': '¡Prompt enviado al chat con éxito!',
+  hardReload: 'Recarga forzada (ignorar caché)',
+  screenshotFullPage: 'Captura de pantalla completa',
+  'screenshot.capturing': 'Capturando página completa…',
+  'screenshot.fullPageSuccess': '¡Captura de página completa enviada al chat!',
 } satisfies Record<keyof typeof en, string>
 
 /** French dictionary, checked against the English keys. */
@@ -181,6 +197,10 @@ export const fr = {
   'inspect.copied': 'Prompt de l\'élément copié dans le presse-papier !',
   'inspect.copiedWithImage': 'Capture et prompt copiés dans le presse-papier ! (Coller avec Ctrl+V)',
   'inspect.sentToChat': 'Prompt envoyé au chat avec succès !',
+  hardReload: 'Rechargement forcé (ignorer le cache)',
+  screenshotFullPage: "Capture d'écran de page entière",
+  'screenshot.capturing': 'Capture de la page entière en cours…',
+  'screenshot.fullPageSuccess': 'Capture de page entière envoyée au chat !',
 } satisfies Record<keyof typeof en, string>
 
 /** German dictionary, checked against the English keys. */
@@ -216,6 +236,10 @@ export const de = {
   'inspect.copied': 'Element-Prompt in die Zwischenablage kopiert!',
   'inspect.copiedWithImage': 'Screenshot und Prompt in Zwischenablage kopiert! (Einfügen mit Strg+V)',
   'inspect.sentToChat': 'Prompt erfolgreich an den Chat gesendet!',
+  hardReload: 'Vollständige Aktualisierung (Cache ignorieren)',
+  screenshotFullPage: 'Vollständiger Seiten-Screenshot',
+  'screenshot.capturing': 'Ganze Seite wird erfasst…',
+  'screenshot.fullPageSuccess': 'Ganze Seite erfasst und an den Chat gesendet!',
 } satisfies Record<keyof typeof en, string>
 
 /** Russian dictionary, checked against the English keys. */
@@ -251,6 +275,10 @@ export const ru = {
   'inspect.copied': 'Промпт элемента скопирован в буфер обмена!',
   'inspect.copiedWithImage': 'Скриншот и промпт скопированы в буфер! (Вставьте через Ctrl+V)',
   'inspect.sentToChat': 'Промпт успешно отправлен в чат!',
+  hardReload: 'Жесткая перезагрузка (игнорировать кэш)',
+  screenshotFullPage: 'Скриншот всей страницы',
+  'screenshot.capturing': 'Захват всей страницы…',
+  'screenshot.fullPageSuccess': 'Скриншот всей страницы отправлен в чат!',
 } satisfies Record<keyof typeof en, string>
 
 /** Portuguese dictionary, checked against the English keys. */
@@ -286,4 +314,8 @@ export const pt = {
   'inspect.copied': 'Prompt do elemento copiado para a área de transferência!',
   'inspect.copiedWithImage': 'Captura e prompt copiados para a área de transferência! (Cole com Ctrl+V)',
   'inspect.sentToChat': 'Prompt enviado para o chat com sucesso!',
+  hardReload: 'Recarregamento forçado (ignorar cache)',
+  screenshotFullPage: 'Captura de página inteira',
+  'screenshot.capturing': 'Capturando página inteira…',
+  'screenshot.fullPageSuccess': 'Captura de página inteira enviada para o chat!',
 } satisfies Record<keyof typeof en, string>

@@ -687,7 +687,104 @@ export function BrowserBody(props: BrowserBodyProps): ReactNode {
   const [draft, setDraft] = useBrowserDraft(target?.url ?? initialUrl.current, state?.addressRevision ?? 0)
   const [inspecting, setInspecting] = useState(false)
   const [toast, setToast] = useState<string>()
+  const [capturingFullPage, setCapturingFullPage] = useState(false)
 
+  const onCaptureFullPage = async (): Promise<void> => {
+    const host = document.getElementById(viewportId)
+    const element = host?.querySelector('webview') ?? null
+    if (!isInspectableWebview(element) || capturingFullPage) return
+    const webview = element
+
+    setCapturingFullPage(true)
+    setToast(t('screenshot.capturing'))
+
+    try {
+      const rawMetrics = await webview.executeJavaScript(`
+        ({
+          scrollHeight: Math.max(document.body ? document.body.scrollHeight : 0, document.documentElement ? document.documentElement.scrollHeight : 0),
+          clientHeight: window.innerHeight,
+          clientWidth: window.innerWidth,
+          scrollY: window.scrollY,
+        })
+      `)
+      const metrics = typeof rawMetrics === 'object' && rawMetrics !== null
+        ? rawMetrics as { scrollHeight: number; clientHeight: number; clientWidth: number; scrollY: number }
+        : { scrollHeight: 600, clientHeight: 600, clientWidth: 800, scrollY: 0 }
+
+      const totalH = Math.min(12000, Math.max(1, metrics.scrollHeight))
+      const vpH = Math.max(1, metrics.clientHeight)
+      const vpW = Math.max(1, metrics.clientWidth)
+
+      let imageBlob: Blob | undefined
+
+      if (totalH <= vpH) {
+        if (typeof webview.capturePage === 'function') {
+          const pageImg = await webview.capturePage({ x: 0, y: 0, width: vpW, height: totalH })
+          if (!pageImg.isEmpty()) {
+            const res = await fetch(pageImg.toDataURL())
+            imageBlob = await res.blob()
+          }
+        }
+      } else {
+        const canvas = document.createElement('canvas')
+        canvas.width = vpW
+        canvas.height = totalH
+        const ctx = canvas.getContext('2d')
+
+        if (ctx && typeof webview.capturePage === 'function') {
+          let y = 0
+          while (y < totalH) {
+            const scrollTarget = Math.min(y, Math.max(0, totalH - vpH))
+            await webview.executeJavaScript(`window.scrollTo(0, ${String(scrollTarget)})`)
+            await new Promise(r => setTimeout(r, 70))
+            const chunk = await webview.capturePage({ x: 0, y: 0, width: vpW, height: vpH })
+            if (!chunk.isEmpty()) {
+              const { promise, resolve } = Promise.withResolvers<void>()
+              const img = new Image()
+              img.onload = () => {
+                ctx.drawImage(img, 0, scrollTarget)
+                resolve()
+              }
+              img.onerror = () => { resolve() }
+              img.src = chunk.toDataURL()
+              await promise
+            }
+            y += vpH
+          }
+          await webview.executeJavaScript(`window.scrollTo(0, ${String(metrics.scrollY)})`)
+          const { promise, resolve } = Promise.withResolvers<Blob>()
+          canvas.toBlob((blob) => {
+            resolve(blob ?? new Blob([], { type: 'image/png' }))
+          }, 'image/png')
+          imageBlob = await promise
+        }
+      }
+
+      if (imageBlob) {
+        const prompt = 'Please inspect this full page screenshot.'
+        if (typeof sendToChat === 'function') {
+          void sendToChat(prompt, imageBlob, true)
+        }
+        try {
+          if (typeof window !== 'undefined' && typeof window.focus === 'function') {
+            window.focus()
+          }
+          await navigator.clipboard.write([new ClipboardItem({
+            'text/plain': new Blob([prompt], { type: 'text/plain' }),
+            'image/png': imageBlob,
+          })])
+        } catch {}
+        setToast(t('screenshot.fullPageSuccess'))
+      } else {
+        setToast(t('load.failed'))
+      }
+    } catch (err) {
+      console.warn('full page screenshot failed', err)
+      setToast(t('load.failed'))
+    } finally {
+      setCapturingFullPage(false)
+    }
+  }
   useEffect(() => {
     const host = document.getElementById(viewportId)
     const element = host?.querySelector('webview') ?? null
@@ -821,7 +918,30 @@ export function BrowserBody(props: BrowserBodyProps): ReactNode {
         <button type="button" className={css.tool} aria-label={t('back')} title={t('back')} disabled={!frame.canGoBack} onClick={() => { goBack(tab.id) }}><IconChevronLeftOutlineRegular /></button>
         <button type="button" className={css.tool} aria-label={t('forward')} title={t('forward')} disabled={!frame.canGoForward} onClick={() => { goForward(tab.id) }}><IconChevronRightOutlineRegular /></button>
         <Tooltip label={t('reload')} shortcutKeys={tab.refreshShortcut?.keys} side="bottom" delayMs={500}>
-          <button type="button" className={css.tool} aria-label={t('reload')} aria-keyshortcuts={tab.refreshShortcut?.aria} disabled={target === undefined || mountEpoch === 0} onClick={() => { reload(tab.id) }}><IconRefreshOutlineRegular /></button>
+          <button
+            type="button"
+            className={css.tool}
+            aria-label={t('reload')}
+            aria-keyshortcuts={tab.refreshShortcut?.aria}
+            disabled={target === undefined || mountEpoch === 0}
+            onClick={(e) => { reload(tab.id, e.shiftKey) }}
+          >
+            <IconRefreshOutlineRegular />
+          </button>
+        </Tooltip>
+        <Tooltip label={t('hardReload')} shortcutKeys={['Ctrl', 'Shift', 'R']} side="bottom" delayMs={500}>
+          <button
+            type="button"
+            className={css.tool}
+            aria-label={t('hardReload')}
+            disabled={target === undefined || mountEpoch === 0}
+            onClick={() => { reload(tab.id, true) }}
+          >
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden>
+              <path d="M13.5 8A5.5 5.5 0 1 1 10.8 3.3L12 2v3.5H8.5l1.4-1.4A4 4 0 1 0 12 8" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M8 5.5L6.5 8.5h2.5L7.5 11.5" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </button>
         </Tooltip>
         <div className={css.addressBox}>
           <input
@@ -838,6 +958,21 @@ export function BrowserBody(props: BrowserBodyProps): ReactNode {
         <button type="button" className={css.tool} aria-label={t('external')} title={t('external')} disabled={externalUrl === undefined}
           onClick={externalUrl === undefined ? undefined : () => { window.open(externalUrl, '_blank', 'noopener,noreferrer') }}
         ><IconRightUpOutlineRegular size={14} /></button>
+        <Tooltip label={t('screenshotFullPage')} side="bottom" delayMs={500}>
+          <button
+            type="button"
+            className={css.tool}
+            aria-label={t('screenshotFullPage')}
+            disabled={target === undefined || mountEpoch === 0 || capturingFullPage}
+            onClick={() => { void onCaptureFullPage() }}
+          >
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden>
+              <rect x="2.5" y="2" width="11" height="12" rx="1.5" stroke="currentColor" strokeWidth="1.2" />
+              <circle cx="8" cy="8" r="2.5" stroke="currentColor" strokeWidth="1.2" />
+              <path d="M2.5 5h11" stroke="currentColor" strokeWidth="1" strokeDasharray="1.5 1.5" />
+            </svg>
+          </button>
+        </Tooltip>
         <Tooltip label={t(inspecting ? 'inspect.disable' : 'inspect.enable')} side="bottom" delayMs={500}>
           <button
             type="button"
