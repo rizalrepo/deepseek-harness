@@ -540,8 +540,9 @@ window.__ModuleLoader__.load({
     return {
       inject: ['slots'],
       apply(ctx) {
-        ctx.slots.inject('settings.section', () =>
-          ctx.slots.register(
+        ctx.slots.inject('settings.section', () => {
+          if (ctx.slots.entries('settings.section').some((e) => e.options.id === 'mcp-servers')) return () => {};
+          return ctx.slots.register(
             {
               name: 'settings.section',
               id: 'mcp-servers',
@@ -549,18 +550,19 @@ window.__ModuleLoader__.load({
               label: () => 'MCP Servers',
             },
             McpSettingsSection,
-          ),
-        );
+          );
+        });
 
-        ctx.slots.inject('settings.section.icon', () =>
-          ctx.slots.register(
+        ctx.slots.inject('settings.section.icon', () => {
+          if (ctx.slots.entries('settings.section.icon').some((e) => e.options.id === 'mcp-servers')) return () => {};
+          return ctx.slots.register(
             {
               name: 'settings.section.icon',
               id: 'mcp-servers',
             },
             McpIcon,
-          ),
-        );
+          );
+        });
       },
     };
   },
