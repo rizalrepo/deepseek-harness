@@ -567,6 +567,34 @@ function SandboxPolicyIcon({ sandboxed }: { readonly sandboxed: boolean }): Reac
   )
 }
 
+function IconDeviceDesktop(): ReactNode {
+  return (
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden>
+      <rect x="2" y="2.5" width="12" height="8.5" rx="1.5" stroke="currentColor" strokeWidth="1.2" />
+      <path d="M5.5 14h5M8 11v3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function IconDeviceTablet(): ReactNode {
+  return (
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden>
+      <rect x="3" y="1.5" width="10" height="13" rx="1.5" stroke="currentColor" strokeWidth="1.2" />
+      <circle cx="8" cy="12" r="0.75" fill="currentColor" />
+    </svg>
+  )
+}
+
+function IconDeviceMobile(): ReactNode {
+  return (
+    <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden>
+      <rect x="4.5" y="1.5" width="7" height="13" rx="1.5" stroke="currentColor" strokeWidth="1.2" />
+      <circle cx="8" cy="12" r="0.75" fill="currentColor" />
+      <path d="M7 3h2" stroke="currentColor" strokeWidth="1" strokeLinecap="round" />
+    </svg>
+  )
+}
+
 /** Browser body props assembled by the tab seat. */
 export type BrowserBodyProps = PropsRuntime<'sidebar.right.pane.tab'>
   & PropsStore<BrowserStore>
@@ -688,7 +716,14 @@ export function BrowserBody(props: BrowserBodyProps): ReactNode {
   const [inspecting, setInspecting] = useState(false)
   const [toast, setToast] = useState<string>()
   const [capturingFullPage, setCapturingFullPage] = useState(false)
-
+  const [breakpoint, setBreakpoint] = useState<'desktop' | 'tablet' | 'mobile'>('desktop')
+  const [fullPageCapture, setFullPageCapture] = useState<{
+    readonly blob: Blob
+    readonly previewUrl: string
+    readonly width: number
+    readonly height: number
+  }>()
+  const [fullPagePrompt, setFullPagePrompt] = useState('')
   const onCaptureFullPage = async (): Promise<void> => {
     const host = document.getElementById(viewportId)
     const element = host?.querySelector('webview') ?? null
@@ -761,20 +796,15 @@ export function BrowserBody(props: BrowserBodyProps): ReactNode {
       }
 
       if (imageBlob) {
-        const prompt = 'Please inspect this full page screenshot.'
-        if (typeof sendToChat === 'function') {
-          void sendToChat(prompt, imageBlob, true)
-        }
-        try {
-          if (typeof window !== 'undefined' && typeof window.focus === 'function') {
-            window.focus()
-          }
-          await navigator.clipboard.write([new ClipboardItem({
-            'text/plain': new Blob([prompt], { type: 'text/plain' }),
-            'image/png': imageBlob,
-          })])
-        } catch {}
-        setToast(t('screenshot.fullPageSuccess'))
+        const previewUrl = URL.createObjectURL(imageBlob)
+        setFullPageCapture({
+          blob: imageBlob,
+          previewUrl,
+          width: vpW,
+          height: totalH,
+        })
+        setFullPagePrompt('')
+        setToast(undefined)
       } else {
         setToast(t('load.failed'))
       }
@@ -783,6 +813,51 @@ export function BrowserBody(props: BrowserBodyProps): ReactNode {
       setToast(t('load.failed'))
     } finally {
       setCapturingFullPage(false)
+    }
+  }
+  const submitFullPageScreenshot = async (): Promise<void> => {
+    if (!fullPageCapture) return
+    const capture = fullPageCapture
+    setFullPageCapture(undefined)
+    URL.revokeObjectURL(capture.previewUrl)
+    const prompt = fullPagePrompt.trim() || 'Please inspect this full page screenshot.'
+    setToast(t('screenshot.capturing'))
+    if (typeof sendToChat === 'function') {
+      await sendToChat(prompt, capture.blob, true)
+    }
+    try {
+      if (typeof window !== 'undefined' && typeof window.focus === 'function') {
+        window.focus()
+      }
+      await navigator.clipboard.write([new ClipboardItem({
+        'text/plain': new Blob([prompt], { type: 'text/plain' }),
+        'image/png': capture.blob,
+      })])
+    } catch {}
+    setToast(t('screenshot.fullPageSuccess'))
+  }
+
+  const cancelFullPageCapture = (): void => {
+    if (fullPageCapture) {
+      URL.revokeObjectURL(fullPageCapture.previewUrl)
+      setFullPageCapture(undefined)
+    }
+  }
+
+  const copyFullPageScreenshot = async (): Promise<void> => {
+    if (!fullPageCapture) return
+    const prompt = fullPagePrompt.trim() || 'Please inspect this full page screenshot.'
+    try {
+      if (typeof window !== 'undefined' && typeof window.focus === 'function') {
+        window.focus()
+      }
+      await navigator.clipboard.write([new ClipboardItem({
+        'text/plain': new Blob([prompt], { type: 'text/plain' }),
+        'image/png': fullPageCapture.blob,
+      })])
+      setToast(t('inspect.copiedWithImage'))
+    } catch {
+      setToast(t('inspect.copied'))
     }
   }
   useEffect(() => {
@@ -943,6 +1018,41 @@ export function BrowserBody(props: BrowserBodyProps): ReactNode {
             </svg>
           </button>
         </Tooltip>
+        <div className={css.breakpointGroup} role="radiogroup" aria-label="Responsive Breakpoints">
+          <Tooltip label={t('breakpoint.desktop')} side="bottom" delayMs={500}>
+            <button
+              type="button"
+              className={[css.tool, breakpoint === 'desktop' ? css.breakpointActive : ''].join(' ')}
+              aria-label={t('breakpoint.desktop')}
+              aria-pressed={breakpoint === 'desktop'}
+              onClick={() => { setBreakpoint('desktop') }}
+            >
+              <IconDeviceDesktop />
+            </button>
+          </Tooltip>
+          <Tooltip label={t('breakpoint.tablet')} side="bottom" delayMs={500}>
+            <button
+              type="button"
+              className={[css.tool, breakpoint === 'tablet' ? css.breakpointActive : ''].join(' ')}
+              aria-label={t('breakpoint.tablet')}
+              aria-pressed={breakpoint === 'tablet'}
+              onClick={() => { setBreakpoint('tablet') }}
+            >
+              <IconDeviceTablet />
+            </button>
+          </Tooltip>
+          <Tooltip label={t('breakpoint.mobile')} side="bottom" delayMs={500}>
+            <button
+              type="button"
+              className={[css.tool, breakpoint === 'mobile' ? css.breakpointActive : ''].join(' ')}
+              aria-label={t('breakpoint.mobile')}
+              aria-pressed={breakpoint === 'mobile'}
+              onClick={() => { setBreakpoint('mobile') }}
+            >
+              <IconDeviceMobile />
+            </button>
+          </Tooltip>
+        </div>
         <div className={css.addressBox}>
           <input
             className={[css.address, unknown ? css.addressUnknown : ''].join(' ')}
@@ -1005,8 +1115,57 @@ export function BrowserBody(props: BrowserBodyProps): ReactNode {
           {toast}
         </div>
       )}
+      {fullPageCapture !== undefined && (
+        <div className={css.fullPageModal}>
+          <div className={css.fullPageCard}>
+            <div className={css.fullPageHeader}>
+              <div className={css.fullPageTitle}>
+                <span>📸</span>
+                <span>{t('screenshot.promptTitle')}</span>
+                <span className={css.fullPageDim}>({fullPageCapture.width} × {fullPageCapture.height} px)</span>
+              </div>
+              <button type="button" className={css.fullPageClose} onClick={cancelFullPageCapture}>✕</button>
+            </div>
+            <div className={css.fullPageBody}>
+              <div className={css.fullPagePreview}>
+                <img src={fullPageCapture.previewUrl} alt="Full page preview" className={css.fullPageImg} />
+              </div>
+              <textarea
+                className={css.fullPageTextarea}
+                placeholder={t('screenshot.promptPlaceholder')}
+                value={fullPagePrompt}
+                autoFocus
+                onChange={(e) => { setFullPagePrompt(e.target.value) }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault()
+                    void submitFullPageScreenshot()
+                  } else if (e.key === 'Escape') {
+                    e.preventDefault()
+                    cancelFullPageCapture()
+                  }
+                }}
+              />
+            </div>
+            <div className={css.fullPageFooter}>
+              <span className={css.fullPageHint}>Enter untuk kirim</span>
+              <div className={css.fullPageActions}>
+                <button type="button" className={css.fullPageBtnCopy} onClick={() => { void copyFullPageScreenshot() }}>Copy</button>
+                <button type="button" className={css.fullPageBtnSend} onClick={() => { void submitFullPageScreenshot() }}>Send</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       <div className={css.content} aria-busy={frame.loading}>
-        <div id={viewportId} className={css.viewport} aria-label={t('type.label')} />
+        <div
+          id={viewportId}
+          className={[
+            css.viewport,
+            breakpoint === 'tablet' ? css.viewportTablet : breakpoint === 'mobile' ? css.viewportMobile : css.viewportDesktop,
+          ].join(' ')}
+          aria-label={t('type.label')}
+        />
         {restoreTarget !== undefined && <section className={css.restore} aria-label={t('restore.previous')}>
           <p className={css.restoreLabel}>{t('restore.previous')}</p>
           <p className={css.restoreTitle}>{restoreTarget.title}</p>

@@ -307,4 +307,29 @@ describe('BrowserBody', () => {
     expect(screenshotBtn).toHaveProperty('disabled', false)
   })
 
+  it('switches responsive breakpoints between desktop, tablet, and mobile', async () => {
+    const mounted = mountBrowser({ url: 'https://inspect.example/' })
+    await waitFor(() => { expect(mounted.view.container.querySelector('iframe')?.getAttribute('src')).toBe('https://inspect.example/') })
+
+    const desktopBtn = mounted.view.getByRole('button', { name: zh['breakpoint.desktop'] })
+    const tabletBtn = mounted.view.getByRole('button', { name: zh['breakpoint.tablet'] })
+    const mobileBtn = mounted.view.getByRole('button', { name: zh['breakpoint.mobile'] })
+
+    expect(desktopBtn.getAttribute('aria-pressed')).toBe('true')
+    expect(tabletBtn.getAttribute('aria-pressed')).toBe('false')
+    expect(mobileBtn.getAttribute('aria-pressed')).toBe('false')
+
+    fireEvent.click(tabletBtn)
+    expect(desktopBtn.getAttribute('aria-pressed')).toBe('false')
+    expect(tabletBtn.getAttribute('aria-pressed')).toBe('true')
+
+    fireEvent.click(mobileBtn)
+    expect(tabletBtn.getAttribute('aria-pressed')).toBe('false')
+    expect(mobileBtn.getAttribute('aria-pressed')).toBe('true')
+
+    fireEvent.click(desktopBtn)
+    expect(desktopBtn.getAttribute('aria-pressed')).toBe('true')
+    expect(mobileBtn.getAttribute('aria-pressed')).toBe('false')
+  })
+
 })

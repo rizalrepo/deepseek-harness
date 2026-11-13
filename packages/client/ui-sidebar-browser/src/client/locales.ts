@@ -35,6 +35,11 @@ export const zh = {
   screenshotFullPage: '整页截图',
   'screenshot.capturing': '正在截取整页…',
   'screenshot.fullPageSuccess': '整页截图已生成并发送至对话！',
+  'breakpoint.desktop': '桌面端 (100%)',
+  'breakpoint.tablet': '平板端 (768px)',
+  'breakpoint.mobile': '手机端 (375px)',
+  'screenshot.promptTitle': '整页截图',
+  'screenshot.promptPlaceholder': '请输入关于此整页截图的提示词… (Enter 发送)',
 } satisfies Record<string, string>
 
 /** Browser dictionary key union. */
@@ -77,6 +82,11 @@ export const en = {
   screenshotFullPage: 'Full page screenshot',
   'screenshot.capturing': 'Capturing full page screenshot…',
   'screenshot.fullPageSuccess': 'Full page screenshot captured & sent to chat!',
+  'breakpoint.desktop': 'Desktop (100%)',
+  'breakpoint.tablet': 'Tablet (768px)',
+  'breakpoint.mobile': 'Mobile (375px)',
+  'screenshot.promptTitle': 'Full Page Screenshot',
+  'screenshot.promptPlaceholder': 'Ask AI to analyze this full page screenshot… (Enter to send)',
 } satisfies Record<SidebarBrowserKey, string>
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
@@ -123,6 +133,11 @@ export const ja = {
   screenshotFullPage: 'フルページスクリーンショット',
   'screenshot.capturing': 'フルページを撮影中…',
   'screenshot.fullPageSuccess': 'フルページスクリーンショットを撮影しチャットに送信しました！',
+  'breakpoint.desktop': 'デスクトップ (100%)',
+  'breakpoint.tablet': 'タブレット (768px)',
+  'breakpoint.mobile': 'モバイル (375px)',
+  'screenshot.promptTitle': 'フルページスクリーンショット',
+  'screenshot.promptPlaceholder': 'このフルページスクリーンショットについて質問を入力… (Enterで送信)',
 } satisfies Record<keyof typeof en, string>
 
 /** Spanish dictionary, checked against the English keys. */
@@ -162,6 +177,11 @@ export const es = {
   screenshotFullPage: 'Captura de pantalla completa',
   'screenshot.capturing': 'Capturando página completa…',
   'screenshot.fullPageSuccess': '¡Captura de página completa enviada al chat!',
+  'breakpoint.desktop': 'Escritorio (100%)',
+  'breakpoint.tablet': 'Tableta (768px)',
+  'breakpoint.mobile': 'Móvil (375px)',
+  'screenshot.promptTitle': 'Captura de pantalla completa',
+  'screenshot.promptPlaceholder': 'Pide a la IA que analice esta captura… (Enter para enviar)',
 } satisfies Record<keyof typeof en, string>
 
 /** French dictionary, checked against the English keys. */
@@ -201,6 +221,11 @@ export const fr = {
   screenshotFullPage: "Capture d'écran de page entière",
   'screenshot.capturing': 'Capture de la page entière en cours…',
   'screenshot.fullPageSuccess': 'Capture de page entière envoyée au chat !',
+  'breakpoint.desktop': 'Ordinateur (100%)',
+  'breakpoint.tablet': 'Tablette (768px)',
+  'breakpoint.mobile': 'Mobile (375px)',
+  'screenshot.promptTitle': "Capture d'écran de page entière",
+  'screenshot.promptPlaceholder': "Demander à l'IA d'analyser cette capture… (Entrée pour envoyer)",
 } satisfies Record<keyof typeof en, string>
 
 /** German dictionary, checked against the English keys. */
@@ -240,6 +265,11 @@ export const de = {
   screenshotFullPage: 'Vollständiger Seiten-Screenshot',
   'screenshot.capturing': 'Ganze Seite wird erfasst…',
   'screenshot.fullPageSuccess': 'Ganze Seite erfasst und an den Chat gesendet!',
+  'breakpoint.desktop': 'Desktop (100%)',
+  'breakpoint.tablet': 'Tablet (768px)',
+  'breakpoint.mobile': 'Mobil (375px)',
+  'screenshot.promptTitle': 'Vollständiger Seiten-Screenshot',
+  'screenshot.promptPlaceholder': 'Bitten Sie die KI, diesen Screenshot zu analysieren… (Enter zum Senden)',
 } satisfies Record<keyof typeof en, string>
 
 /** Russian dictionary, checked against the English keys. */
@@ -279,6 +309,11 @@ export const ru = {
   screenshotFullPage: 'Скриншот всей страницы',
   'screenshot.capturing': 'Захват всей страницы…',
   'screenshot.fullPageSuccess': 'Скриншот всей страницы отправлен в чат!',
+  'breakpoint.desktop': 'Рабочий стол (100%)',
+  'breakpoint.tablet': 'Планшет (768px)',
+  'breakpoint.mobile': 'Мобильный (375px)',
+  'screenshot.promptTitle': 'Скриншот всей страницы',
+  'screenshot.promptPlaceholder': 'Попросите ИИ проанализировать этот скриншот… (Enter для отправки)',
 } satisfies Record<keyof typeof en, string>
 
 /** Portuguese dictionary, checked against the English keys. */
@@ -318,4 +353,9 @@ export const pt = {
   screenshotFullPage: 'Captura de página inteira',
   'screenshot.capturing': 'Capturando página inteira…',
   'screenshot.fullPageSuccess': 'Captura de página inteira enviada para o chat!',
+  'breakpoint.desktop': 'Área de trabalho (100%)',
+  'breakpoint.tablet': 'Tablet (768px)',
+  'breakpoint.mobile': 'Celular (375px)',
+  'screenshot.promptTitle': 'Captura de página inteira',
+  'screenshot.promptPlaceholder': 'Peça à IA para analisar esta captura… (Enter para enviar)',
 } satisfies Record<keyof typeof en, string>
