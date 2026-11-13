@@ -45,10 +45,12 @@ const INSPECT_SCRIPT = `
     root.id = ROOT_ID;
     root.style.cssText = 'position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:2147483647;pointer-events:none;user-select:none;font-family:system-ui,-apple-system,sans-serif;';
 
-    const snipCanvas = document.createElement('canvas');
-    snipCanvas.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;';
-    root.appendChild(snipCanvas);
+    // 1. Selection & Hover Canvas
+    const overlayCanvas = document.createElement('canvas');
+    overlayCanvas.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;';
+    root.appendChild(overlayCanvas);
 
+    // 2. Freehand Doodle Canvas
     const doodleCanvas = document.createElement('canvas');
     doodleCanvas.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;';
     root.appendChild(doodleCanvas);
@@ -56,9 +58,9 @@ const INSPECT_SCRIPT = `
     function resizeCanvases() {
       const w = window.innerWidth;
       const h = window.innerHeight;
-      if (snipCanvas.width !== w || snipCanvas.height !== h) {
-        snipCanvas.width = w;
-        snipCanvas.height = h;
+      if (overlayCanvas.width !== w || overlayCanvas.height !== h) {
+        overlayCanvas.width = w;
+        overlayCanvas.height = h;
       }
       if (doodleCanvas.width !== w || doodleCanvas.height !== h) {
         const temp = document.createElement('canvas');
@@ -74,76 +76,80 @@ const INSPECT_SCRIPT = `
     }
     resizeCanvases();
 
-    const badge = document.createElement('div');
-    badge.style.cssText = 'position:absolute;display:none;background:#0f172a;color:#f8fafc;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;font-weight:600;padding:2px 8px;border-radius:4px;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.4);border:1px solid #3b82f6;pointer-events:none;z-index:10;';
-    root.appendChild(badge);
+    // 3. Docked Top Bar (menempel horizontal penuh di atas)
+    const topBar = document.createElement('div');
+    topBar.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:38px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;background:rgba(15,23,42,0.96);backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,0.12);box-shadow:0 2px 10px rgba(0,0,0,0.35);color:#f8fafc;font-size:12px;font-weight:500;pointer-events:auto;z-index:40;box-sizing:border-box;';
 
-    const toolbar = document.createElement('div');
-    toolbar.style.cssText = 'position:fixed;top:12px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:4px;padding:4px 6px;background:rgba(15,23,42,0.92);backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.18);border-radius:9999px;box-shadow:0 4px 18px rgba(0,0,0,0.35);color:#f8fafc;font-size:12px;font-weight:500;pointer-events:auto;z-index:20;';
+    const barLeft = document.createElement('div');
+    barLeft.style.cssText = 'display:flex;align-items:center;gap:10px;overflow:hidden;';
 
-    const btnStyle = 'background:transparent;border:0;color:#cbd5e1;padding:4px 10px;border-radius:9999px;cursor:pointer;font-size:12px;display:flex;align-items:center;gap:4px;font-weight:500;transition:all 0.1s;';
-    const btnActiveStyle = 'background:#3b82f6;color:#ffffff;';
+    const modeBadge = document.createElement('span');
+    modeBadge.style.cssText = 'background:rgba(59,130,246,0.18);color:#60a5fa;border:1px solid rgba(59,130,246,0.4);padding:2px 8px;border-radius:4px;font-weight:600;font-size:11px;letter-spacing:0.3px;white-space:nowrap;';
+    modeBadge.textContent = '🎨 Design Mode';
 
-    const btnSnip = document.createElement('button');
-    btnSnip.type = 'button';
-    btnSnip.textContent = '📐 Snip / Element';
-    btnSnip.style.cssText = btnStyle + btnActiveStyle;
+    const guideText = document.createElement('span');
+    guideText.style.cssText = 'color:#94a3b8;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+    guideText.textContent = 'Klik elemen untuk memilih (multi-select) • Drag mouse untuk coret-coret';
 
-    const btnDraw = document.createElement('button');
-    btnDraw.type = 'button';
-    btnDraw.textContent = '✏️ Draw / Coret';
-    btnDraw.style.cssText = btnStyle;
+    barLeft.appendChild(modeBadge);
+    barLeft.appendChild(guideText);
 
-    const btnClear = document.createElement('button');
-    btnClear.type = 'button';
-    btnClear.textContent = '↺ Clear';
-    btnClear.style.cssText = btnStyle;
+    const barRight = document.createElement('div');
+    barRight.style.cssText = 'display:flex;align-items:center;gap:8px;flex-shrink:0;';
 
-    const btnDone = document.createElement('button');
-    btnDone.type = 'button';
-    btnDone.textContent = '✔ Done (Enter)';
-    btnDone.style.cssText = btnStyle + 'background:#10b981;color:#fff;font-weight:600;margin-left:4px;';
+    const countBadge = document.createElement('span');
+    countBadge.style.cssText = 'color:#cbd5e1;font-size:11px;font-weight:500;padding:2px 8px;background:rgba(255,255,255,0.06);border-radius:4px;border:1px solid rgba(255,255,255,0.08);white-space:nowrap;';
+    countBadge.textContent = '0 target';
 
-    const btnCancel = document.createElement('button');
-    btnCancel.type = 'button';
-    btnCancel.textContent = '✕';
-    btnCancel.title = 'Cancel (Esc)';
-    btnCancel.style.cssText = btnStyle + 'padding:4px 8px;';
+    const btnReset = document.createElement('button');
+    btnReset.type = 'button';
+    btnReset.textContent = '↺ Reset';
+    btnReset.style.cssText = 'background:transparent;border:1px solid rgba(255,255,255,0.15);color:#cbd5e1;padding:3px 10px;border-radius:4px;cursor:pointer;font-size:11px;font-weight:500;transition:all 0.1s;';
 
-    toolbar.appendChild(btnSnip);
-    toolbar.appendChild(btnDraw);
-    toolbar.appendChild(btnClear);
-    toolbar.appendChild(btnDone);
-    toolbar.appendChild(btnCancel);
-    root.appendChild(toolbar);
+    const btnExit = document.createElement('button');
+    btnExit.type = 'button';
+    btnExit.textContent = '✕ Keluar (Esc)';
+    btnExit.style.cssText = 'background:transparent;border:0;color:#94a3b8;padding:3px 8px;border-radius:4px;cursor:pointer;font-size:11px;font-weight:500;';
 
+    barRight.appendChild(countBadge);
+    barRight.appendChild(btnReset);
+    barRight.appendChild(btnExit);
 
-    // Floating Chat Card (Cursor-style prompt popover)
+    topBar.appendChild(barLeft);
+    topBar.appendChild(barRight);
+    root.appendChild(topBar);
+
+    // 4. Floating Chat Card (Automatic Popover with Element Chips)
     const chatBox = document.createElement('div');
-    chatBox.style.cssText = 'position:fixed;display:none;width:360px;max-width:calc(100vw - 32px);background:rgba(15,23,42,0.96);backdrop-filter:blur(12px);border:1px solid #3b82f6;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.5);color:#f8fafc;z-index:30;pointer-events:auto;overflow:hidden;box-sizing:border-box;font-family:system-ui,-apple-system,sans-serif;';
+    chatBox.style.cssText = 'position:fixed;display:none;width:380px;max-width:calc(100vw - 32px);background:rgba(15,23,42,0.96);backdrop-filter:blur(14px);border:1px solid #3b82f6;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.55);color:#f8fafc;z-index:50;pointer-events:auto;overflow:hidden;box-sizing:border-box;font-family:system-ui,-apple-system,sans-serif;';
 
     const chatHeader = document.createElement('div');
     chatHeader.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.08);background:rgba(15,23,42,0.6);';
 
-    const targetLabel = document.createElement('div');
-    targetLabel.style.cssText = 'display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:#60a5fa;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:280px;';
-    targetLabel.textContent = '🎯 Target';
+    const headerTitle = document.createElement('div');
+    headerTitle.style.cssText = 'display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:#60a5fa;';
+    headerTitle.textContent = '💬 Kirim ke Chat';
 
     const closeBtn = document.createElement('button');
     closeBtn.type = 'button';
     closeBtn.textContent = '✕';
+    closeBtn.title = 'Tutup pop-up (Esc)';
     closeBtn.style.cssText = 'background:transparent;border:0;color:#94a3b8;cursor:pointer;font-size:14px;padding:2px 6px;line-height:1;border-radius:4px;';
 
-    chatHeader.appendChild(targetLabel);
+    chatHeader.appendChild(headerTitle);
     chatHeader.appendChild(closeBtn);
     chatBox.appendChild(chatHeader);
 
+    const chipsContainer = document.createElement('div');
+    chipsContainer.style.cssText = 'display:flex;flex-wrap:wrap;gap:4px;padding:8px 12px 0 12px;max-height:80px;overflow-y:auto;';
+    chatBox.appendChild(chipsContainer);
+
     const chatBody = document.createElement('div');
-    chatBody.style.cssText = 'padding:10px 12px;';
+    chatBody.style.cssText = 'padding:8px 12px 10px 12px;';
 
     const promptInput = document.createElement('textarea');
     promptInput.placeholder = 'Tulis instruksi atau pertanyaan untuk AI... (Enter untuk kirim, Shift+Enter untuk baris baru)';
-    promptInput.style.cssText = 'width:100%;min-height:64px;max-height:130px;background:#090d16;color:#f8fafc;border:1px solid #334155;border-radius:6px;padding:8px 10px;font-family:inherit;font-size:13px;resize:vertical;outline:none;box-sizing:border-box;line-height:1.4;';
+    promptInput.style.cssText = 'width:100%;min-height:64px;max-height:120px;background:#090d16;color:#f8fafc;border:1px solid #334155;border-radius:6px;padding:8px 10px;font-family:inherit;font-size:13px;resize:vertical;outline:none;box-sizing:border-box;line-height:1.4;';
 
     chatBody.appendChild(promptInput);
     chatBox.appendChild(chatBody);
@@ -175,124 +181,17 @@ const INSPECT_SCRIPT = `
     chatBox.appendChild(chatFooter);
 
     root.appendChild(chatBox);
-
-    let currentPending = null;
-
-    function showChatBox(data) {
-      currentPending = data;
-      const rect = data.rect;
-      targetLabel.textContent = '🎯 ' + (data.selector || (Math.round(rect.width) + ' × ' + Math.round(rect.height) + ' px'));
-      promptInput.value = '';
-
-      const pad = 12;
-      const boxW = Math.min(360, window.innerWidth - pad * 2);
-      let left = rect.x;
-      if (left + boxW > window.innerWidth - pad) {
-        left = window.innerWidth - boxW - pad;
-      }
-      left = Math.max(pad, left);
-
-      let top = rect.y + rect.height + 8;
-      if (top + 180 > window.innerHeight - pad) {
-        top = rect.y - 180;
-      }
-      if (top < pad) {
-        top = Math.max(pad, window.innerHeight - 190);
-      }
-
-      chatBox.style.width = boxW + 'px';
-      chatBox.style.left = Math.round(left) + 'px';
-      chatBox.style.top = Math.round(top) + 'px';
-      chatBox.style.display = 'block';
-
-      setTimeout(() => { promptInput.focus(); }, 60);
-    }
-
-    function hideChatBox() {
-      chatBox.style.display = 'none';
-      currentPending = null;
-    }
-
-    function submitChat(isCopyOnly) {
-      if (!currentPending) return;
-      const userPrompt = (promptInput.value || '').trim();
-      const payload = {
-        ...currentPending,
-        userPrompt: userPrompt || undefined,
-        isCopyOnly: isCopyOnly === true,
-      };
-      sendPayload(payload);
-      cleanup();
-    }
-
-    sendBtn.addEventListener('click', (e) => { e.stopPropagation(); submitChat(false); });
-    copyBtn.addEventListener('click', (e) => { e.stopPropagation(); submitChat(true); });
-    closeBtn.addEventListener('click', (e) => { e.stopPropagation(); hideChatBox(); });
-
-    promptInput.addEventListener('keydown', (e) => {
-      e.stopPropagation();
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        submitChat(false);
-      } else if (e.key === 'Escape') {
-        e.preventDefault();
-        hideChatBox();
-      }
-    });
-
-    let mode = 'snip';
-    let isMouseDown = false;
-    let startX = 0;
-    let startY = 0;
-    let activeRect = null;
-    let hoveredElement = null;
-    const doodlePoints = [];
-    let hasDoodles = false;
-
-    function setMode(newMode) {
-      mode = newMode;
-      if (mode === 'snip') {
-        btnSnip.style.cssText = btnStyle + btnActiveStyle;
-        btnDraw.style.cssText = btnStyle;
-        document.body.style.cursor = 'crosshair';
-      } else {
-        btnSnip.style.cssText = btnStyle;
-        btnDraw.style.cssText = btnStyle + btnActiveStyle;
-        document.body.style.cursor = 'crosshair';
-        badge.style.display = 'none';
-        clearSnipCanvas();
-      }
-    }
-
-    btnSnip.addEventListener('click', (e) => { e.stopPropagation(); setMode('snip'); });
-    btnDraw.addEventListener('click', (e) => { e.stopPropagation(); setMode('draw'); });
-    btnClear.addEventListener('click', (e) => {
-      e.stopPropagation();
-      clearSnipCanvas();
-      clearDoodleCanvas();
-      activeRect = null;
-      badge.style.display = 'none';
-    });
-    btnDone.addEventListener('click', (e) => { e.stopPropagation(); finishCapture(); });
-    btnCancel.addEventListener('click', (e) => {
-      e.stopPropagation();
-      console.log('__DSH_INSPECT_CANCEL__');
-      cleanup();
-    });
     document.documentElement.appendChild(root);
 
-
-    function clearSnipCanvas() {
-      const sctx = snipCanvas.getContext('2d');
-      if (sctx) sctx.clearRect(0, 0, snipCanvas.width, snipCanvas.height);
-    }
-
-    function clearDoodleCanvas() {
-      const dctx = doodleCanvas.getContext('2d');
-      if (dctx) dctx.clearRect(0, 0, doodleCanvas.width, doodleCanvas.height);
-      doodlePoints.length = 0;
-      hasDoodles = false;
-    }
+    // State
+    const selectedElements = [];
+    const doodlePoints = [];
+    let hasDoodles = false;
+    let isMouseDown = false;
+    let isDrawing = false;
+    let startX = 0;
+    let startY = 0;
+    let hoveredElement = null;
 
     function getSelector(el) {
       if (!el || el === document.body || el === document.documentElement) return el ? el.tagName.toLowerCase() : '';
@@ -315,79 +214,234 @@ const INSPECT_SCRIPT = `
       return parts.join(' > ');
     }
 
-    function renderHoverBox(rect, label) {
-      const sctx = snipCanvas.getContext('2d');
+    function redrawOverlays() {
+      const sctx = overlayCanvas.getContext('2d');
       if (!sctx) return;
-      sctx.clearRect(0, 0, snipCanvas.width, snipCanvas.height);
-      sctx.fillStyle = 'rgba(59, 130, 246, 0.12)';
-      sctx.fillRect(rect.x, rect.y, rect.width, rect.height);
-      sctx.strokeStyle = '#3b82f6';
-      sctx.lineWidth = 2;
-      sctx.strokeRect(rect.x, rect.y, rect.width, rect.height);
+      sctx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
 
-      badge.style.display = 'block';
-      badge.textContent = label;
-      badge.style.left = Math.max(8, rect.x) + 'px';
-      badge.style.top = (rect.y < 28 ? rect.y + rect.height + 6 : rect.y - 24) + 'px';
+      selectedElements.forEach((item, index) => {
+        const r = item.el.getBoundingClientRect();
+        item.rect = { x: r.left, y: r.top, width: r.width, height: r.height };
+
+        sctx.fillStyle = 'rgba(59, 130, 246, 0.16)';
+        sctx.fillRect(r.left, r.top, r.width, r.height);
+        sctx.strokeStyle = '#3b82f6';
+        sctx.lineWidth = 2;
+        sctx.strokeRect(r.left, r.top, r.width, r.height);
+
+        const badgeText = '#' + (index + 1) + ' ' + item.selector;
+        sctx.font = '600 11px ui-monospace, Menlo, monospace';
+        const tw = sctx.measureText(badgeText).width;
+        const bx = Math.max(8, r.left);
+        const by = r.top < 44 ? r.top + r.height + 4 : r.top - 20;
+
+        sctx.fillStyle = '#0f172a';
+        sctx.fillRect(bx - 2, by, tw + 12, 18);
+        sctx.strokeStyle = '#3b82f6';
+        sctx.lineWidth = 1;
+        sctx.strokeRect(bx - 2, by, tw + 12, 18);
+        sctx.fillStyle = '#60a5fa';
+        sctx.fillText(badgeText, bx + 4, by + 13);
+      });
+
+      if (hoveredElement && !selectedElements.some(item => item.el === hoveredElement)) {
+        const hr = hoveredElement.getBoundingClientRect();
+        sctx.strokeStyle = 'rgba(59, 130, 246, 0.8)';
+        sctx.lineWidth = 1.5;
+        sctx.setLineDash([4, 4]);
+        sctx.strokeRect(hr.left, hr.top, hr.width, hr.height);
+        sctx.setLineDash([]);
+      }
     }
 
-    function renderSnipBox(rect) {
-      const sctx = snipCanvas.getContext('2d');
-      if (!sctx) return;
-      sctx.clearRect(0, 0, snipCanvas.width, snipCanvas.height);
-      sctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
-      sctx.fillRect(0, 0, snipCanvas.width, snipCanvas.height);
-      sctx.clearRect(rect.x, rect.y, rect.width, rect.height);
+    function updateCounterAndChips() {
+      const count = selectedElements.length + (hasDoodles ? 1 : 0);
+      countBadge.textContent = count + ' target';
 
-      sctx.fillStyle = 'rgba(59, 130, 246, 0.08)';
-      sctx.fillRect(rect.x, rect.y, rect.width, rect.height);
-      sctx.strokeStyle = '#3b82f6';
-      sctx.lineWidth = 2;
-      sctx.setLineDash([4, 4]);
-      sctx.strokeRect(rect.x, rect.y, rect.width, rect.height);
-      sctx.setLineDash([]);
+      chipsContainer.innerHTML = '';
+      selectedElements.forEach((item, index) => {
+        const chip = document.createElement('div');
+        chip.style.cssText = 'display:inline-flex;align-items:center;gap:4px;background:#1e293b;border:1px solid #334155;color:#93c5fd;font-size:11px;font-family:ui-monospace,Menlo,monospace;padding:2px 8px;border-radius:9999px;max-width:180px;';
 
-      badge.style.display = 'block';
-      badge.textContent = Math.round(rect.width) + ' × ' + Math.round(rect.height) + ' px';
-      badge.style.left = Math.max(8, rect.x) + 'px';
-      badge.style.top = (rect.y < 28 ? rect.y + rect.height + 6 : rect.y - 24) + 'px';
+        const label = document.createElement('span');
+        label.style.cssText = 'overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+        label.textContent = '#' + (index + 1) + ' ' + item.selector;
+
+        const del = document.createElement('span');
+        del.textContent = '✕';
+        del.style.cssText = 'cursor:pointer;color:#94a3b8;font-size:10px;margin-left:2px;';
+        del.onclick = (e) => {
+          e.stopPropagation();
+          selectedElements.splice(index, 1);
+          redrawOverlays();
+          updateCounterAndChips();
+          if (selectedElements.length === 0 && !hasDoodles) {
+            chatBox.style.display = 'none';
+          }
+        };
+
+        chip.appendChild(label);
+        chip.appendChild(del);
+        chipsContainer.appendChild(chip);
+      });
+
+      if (hasDoodles) {
+        const dChip = document.createElement('div');
+        dChip.style.cssText = 'display:inline-flex;align-items:center;gap:4px;background:#1e293b;border:1px solid #ef4444;color:#fca5a5;font-size:11px;padding:2px 8px;border-radius:9999px;';
+        dChip.textContent = '✏️ Coretan';
+        const dDel = document.createElement('span');
+        dDel.textContent = '✕';
+        dDel.style.cssText = 'cursor:pointer;color:#94a3b8;font-size:10px;margin-left:2px;';
+        dDel.onclick = (e) => {
+          e.stopPropagation();
+          clearDoodles();
+          updateCounterAndChips();
+          if (selectedElements.length === 0 && !hasDoodles) {
+            chatBox.style.display = 'none';
+          }
+        };
+        dChip.appendChild(dDel);
+        chipsContainer.appendChild(dChip);
+      }
     }
+
+    function showOrUpdateChatBox(anchorRect) {
+      updateCounterAndChips();
+      if (selectedElements.length === 0 && !hasDoodles) return;
+
+      const pad = 14;
+      const boxW = Math.min(380, window.innerWidth - pad * 2);
+      let left = anchorRect ? anchorRect.x : window.innerWidth - boxW - pad;
+      if (left + boxW > window.innerWidth - pad) {
+        left = window.innerWidth - boxW - pad;
+      }
+      left = Math.max(pad, left);
+
+      let top = anchorRect ? anchorRect.y + anchorRect.height + 10 : 50;
+      if (top + 220 > window.innerHeight - pad) {
+        top = anchorRect ? anchorRect.y - 210 : window.innerHeight - 230;
+      }
+      top = Math.max(44, top);
+
+      chatBox.style.width = boxW + 'px';
+      chatBox.style.left = Math.round(left) + 'px';
+      chatBox.style.top = Math.round(top) + 'px';
+      chatBox.style.display = 'block';
+
+      setTimeout(() => { promptInput.focus(); }, 40);
+    }
+
+    function clearDoodles() {
+      const dctx = doodleCanvas.getContext('2d');
+      if (dctx) dctx.clearRect(0, 0, doodleCanvas.width, doodleCanvas.height);
+      doodlePoints.length = 0;
+      hasDoodles = false;
+    }
+
+    function resetAll() {
+      selectedElements.length = 0;
+      clearDoodles();
+      redrawOverlays();
+      updateCounterAndChips();
+      chatBox.style.display = 'none';
+    }
+
+    btnReset.addEventListener('click', (e) => { e.stopPropagation(); resetAll(); });
+    btnExit.addEventListener('click', (e) => {
+      e.stopPropagation();
+      console.log('__DSH_INSPECT_CANCEL__');
+      cleanup();
+    });
+
+    closeBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      chatBox.style.display = 'none';
+    });
+
+    function submitChat(isCopyOnly) {
+      if (selectedElements.length === 0 && !hasDoodles) return;
+      const userPrompt = (promptInput.value || '').trim();
+
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      for (const item of selectedElements) {
+        const r = item.el.getBoundingClientRect();
+        minX = Math.min(minX, r.left);
+        minY = Math.min(minY, r.top);
+        maxX = Math.max(maxX, r.right);
+        maxY = Math.max(maxY, r.bottom);
+      }
+      for (const pt of doodlePoints) {
+        minX = Math.min(minX, pt.x);
+        minY = Math.min(minY, pt.y);
+        maxX = Math.max(maxX, pt.x);
+        maxY = Math.max(maxY, pt.y);
+      }
+      if (!isFinite(minX)) {
+        minX = 0; minY = 0; maxX = window.innerWidth; maxY = window.innerHeight;
+      } else {
+        minX = Math.max(0, minX - 16);
+        minY = Math.max(0, minY - 16);
+        maxX = Math.min(window.innerWidth, maxX + 16);
+        maxY = Math.min(window.innerHeight, maxY + 16);
+      }
+      const unionRect = {
+        x: Math.round(minX),
+        y: Math.round(minY),
+        width: Math.max(50, Math.round(maxX - minX)),
+        height: Math.max(50, Math.round(maxY - minY)),
+      };
+
+      const payload = {
+        mode: hasDoodles ? 'draw' : 'element',
+        rect: unionRect,
+        selectedElements: selectedElements.map(item => ({
+          selector: item.selector,
+          outerHtml: item.outerHtml,
+          text: item.text,
+          rect: item.rect,
+        })),
+        location: window.location.href,
+        userPrompt: userPrompt || undefined,
+        isCopyOnly: isCopyOnly === true,
+        doodleDataUrl: hasDoodles ? doodleCanvas.toDataURL('image/png') : undefined,
+      };
+
+      console.log('__DSH_INSPECT__:' + JSON.stringify(payload));
+      cleanup();
+    }
+
+    sendBtn.addEventListener('click', (e) => { e.stopPropagation(); submitChat(false); });
+    copyBtn.addEventListener('click', (e) => { e.stopPropagation(); submitChat(true); });
+
+    promptInput.addEventListener('keydown', (e) => {
+      e.stopPropagation();
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        submitChat(false);
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        chatBox.style.display = 'none';
+      }
+    });
 
     function onMouseMove(e) {
       resizeCanvases();
-      if (toolbar.contains(e.target) || chatBox.contains(e.target)) return;
-      if (chatBox.style.display !== 'none') return;
+      if (topBar.contains(e.target) || chatBox.contains(e.target)) return;
 
       if (!isMouseDown) {
-        if (mode === 'snip' && !activeRect) {
-          const el = e.target;
-          if (!el || el === document.body || el === document.documentElement || root.contains(el)) {
-            badge.style.display = 'none';
-            clearSnipCanvas();
-            return;
-          }
+        const el = e.target;
+        if (!el || el === document.body || el === document.documentElement || root.contains(el)) {
+          hoveredElement = null;
+        } else {
           hoveredElement = el;
-          const rect = el.getBoundingClientRect();
-          if (rect.width === 0 || rect.height === 0) return;
-          const tag = el.tagName.toLowerCase();
-          const cls = el.className && typeof el.className === 'string' ? '.' + el.className.trim().split(/\\s+/).slice(0, 2).join('.') : '';
-          const id = el.id ? '#' + el.id : '';
-          const dims = Math.round(rect.width) + ' × ' + Math.round(rect.height);
-          renderHoverBox({ x: rect.x, y: rect.y, width: rect.width, height: rect.height }, tag + id + cls + ' (' + dims + ')');
         }
+        redrawOverlays();
         return;
       }
 
-      if (mode === 'snip') {
-        const curX = e.clientX;
-        const curY = e.clientY;
-        const x = Math.min(startX, curX);
-        const y = Math.min(startY, curY);
-        const w = Math.abs(curX - startX);
-        const h = Math.abs(curY - startY);
-        activeRect = { x, y, width: w, height: h };
-        renderSnipBox(activeRect);
-      } else if (mode === 'draw') {
+      const dist = Math.hypot(e.clientX - startX, e.clientY - startY);
+      if (dist > 5 || isDrawing) {
+        isDrawing = true;
         const dctx = doodleCanvas.getContext('2d');
         if (dctx) {
           dctx.strokeStyle = '#ef4444';
@@ -403,27 +457,25 @@ const INSPECT_SCRIPT = `
     }
 
     function onMouseDown(e) {
-      if (toolbar.contains(e.target) || chatBox.contains(e.target)) return;
+      if (topBar.contains(e.target) || chatBox.contains(e.target)) return;
       e.preventDefault();
       e.stopPropagation();
       e.stopImmediatePropagation();
 
       isMouseDown = true;
+      isDrawing = false;
       startX = e.clientX;
       startY = e.clientY;
 
-      if (mode === 'draw') {
-        const dctx = doodleCanvas.getContext('2d');
-        if (dctx) {
-          dctx.beginPath();
-          dctx.moveTo(startX, startY);
-          doodlePoints.push({ x: startX, y: startY });
-        }
+      const dctx = doodleCanvas.getContext('2d');
+      if (dctx) {
+        dctx.beginPath();
+        dctx.moveTo(startX, startY);
       }
     }
 
     function onMouseUp(e) {
-      if (toolbar.contains(e.target) || chatBox.contains(e.target)) return;
+      if (topBar.contains(e.target) || chatBox.contains(e.target)) return;
       if (!isMouseDown) return;
       isMouseDown = false;
       e.preventDefault();
@@ -431,118 +483,44 @@ const INSPECT_SCRIPT = `
       e.stopImmediatePropagation();
 
       const dist = Math.hypot(e.clientX - startX, e.clientY - startY);
-      if (mode === 'snip') {
-        if (dist < 8) {
-          activeRect = null;
-          const target = e.target;
-          if (target && target !== document.body && target !== document.documentElement && !root.contains(target)) {
-            const rect = target.getBoundingClientRect();
-            captureSingleElement(target, rect);
+      let anchorRect = null;
+
+      if (dist <= 5 && !isDrawing) {
+        const target = e.target;
+        if (target && target !== document.body && target !== document.documentElement && !root.contains(target)) {
+          const existingIdx = selectedElements.findIndex(item => item.el === target);
+          if (existingIdx !== -1) {
+            selectedElements.splice(existingIdx, 1);
+          } else {
+            const r = target.getBoundingClientRect();
+            const selector = getSelector(target);
+            const tag = target.tagName.toLowerCase();
+            const text = (target.textContent || '').trim().slice(0, 200);
+            const clone = target.cloneNode(false);
+            if (text) clone.textContent = text.length > 80 ? text.slice(0, 77) + '...' : text;
+            const outerHtml = clone.outerHTML || ('<' + tag + '>');
+            const itemRect = { x: r.left, y: r.top, width: r.width, height: r.height };
+            selectedElements.push({ el: target, selector, outerHtml, text, rect: itemRect });
+            anchorRect = itemRect;
           }
-        } else if (activeRect) {
-          const elementsFound = [];
-          const cx = activeRect.x + activeRect.width / 2;
-          const cy = activeRect.y + activeRect.height / 2;
-          const centerEl = document.elementFromPoint(cx, cy);
-          if (centerEl && !root.contains(centerEl)) {
-            elementsFound.push(getSelector(centerEl));
-          }
-          showChatBox({
-            mode: 'snip',
-            rect: activeRect,
-            elements: elementsFound,
-            location: window.location.href,
-            doodleDataUrl: hasDoodles ? doodleCanvas.toDataURL('image/png') : undefined,
-          });
+          redrawOverlays();
         }
-      }
-    }
-
-    function captureSingleElement(el, rect) {
-      const selector = getSelector(el);
-      const tag = el.tagName.toLowerCase();
-      const text = (el.textContent || '').trim().slice(0, 200);
-      const clone = el.cloneNode(false);
-      if (text) clone.textContent = text.length > 80 ? text.slice(0, 77) + '...' : text;
-      const outerHtml = clone.outerHTML || ('<' + tag + '>');
-
-      showChatBox({
-        mode: 'element',
-        rect: { x: rect.left, y: rect.top, width: rect.width, height: rect.height },
-        selector,
-        outerHtml,
-        text,
-        location: window.location.href,
-        doodleDataUrl: hasDoodles ? doodleCanvas.toDataURL('image/png') : undefined,
-      });
-    }
-
-
-    function finishCapture() {
-      let rect = activeRect;
-      if (!rect && hasDoodles && doodlePoints.length > 0) {
-        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-        for (const pt of doodlePoints) {
-          if (pt.x < minX) minX = pt.x;
-          if (pt.y < minY) minY = pt.y;
-          if (pt.x > maxX) maxX = pt.x;
-          if (pt.y > maxY) maxY = pt.y;
-        }
-        minX = Math.max(0, minX - 24);
-        minY = Math.max(0, minY - 24);
-        maxX = Math.min(window.innerWidth, maxX + 24);
-        maxY = Math.min(window.innerHeight, maxY + 24);
-        rect = { x: minX, y: minY, width: Math.max(50, maxX - minX), height: Math.max(50, maxY - minY) };
+      } else if (isDrawing && hasDoodles) {
+        anchorRect = { x: e.clientX, y: e.clientY, width: 40, height: 40 };
       }
 
-      if (!rect && hoveredElement) {
-        const r = hoveredElement.getBoundingClientRect();
-        captureSingleElement(hoveredElement, r);
-        return;
+      if (selectedElements.length > 0 || hasDoodles) {
+        showOrUpdateChatBox(anchorRect);
       }
-
-      if (!rect) {
-        rect = { x: 0, y: 0, width: window.innerWidth, height: window.innerHeight };
-      }
-
-      const elementsFound = [];
-      const cx = rect.x + rect.width / 2;
-      const cy = rect.y + rect.height / 2;
-      const centerEl = document.elementFromPoint(cx, cy);
-      if (centerEl && !root.contains(centerEl)) {
-        elementsFound.push(getSelector(centerEl));
-      }
-
-      showChatBox({
-        mode: hasDoodles ? 'draw' : 'snip',
-        rect,
-        elements: elementsFound,
-        location: window.location.href,
-        doodleDataUrl: hasDoodles ? doodleCanvas.toDataURL('image/png') : undefined,
-      });
-    }
-
-    function sendPayload(data) {
-      console.log('__DSH_INSPECT__:' + JSON.stringify(data));
     }
 
     function onKeyDown(e) {
       if (e.key === 'Escape') {
         if (chatBox.style.display !== 'none') {
-          hideChatBox();
+          chatBox.style.display = 'none';
         } else {
           console.log('__DSH_INSPECT_CANCEL__');
           cleanup();
-        }
-      } else if (e.key === 'Enter') {
-        if (chatBox.style.display === 'none') {
-          finishCapture();
-        }
-      } else if (chatBox.style.display === 'none') {
-        if (e.key === 'd' || e.key === 'D') {
-          setMode('draw');
-        } else if (e.key === 's' || e.key === 'S') {
-          setMode('snip');
         }
       }
     }
@@ -605,9 +583,17 @@ function isInspectableWebview(element: Element | null): element is ElectronWebvi
   return element !== null && 'executeJavaScript' in element && typeof element.executeJavaScript === 'function'
 }
 
+interface InspectElementItem {
+  readonly selector: string
+  readonly outerHtml: string
+  readonly text?: string
+  readonly rect: { readonly x: number; readonly y: number; readonly width: number; readonly height: number }
+}
+
 interface InspectPayload {
   readonly mode?: string
   readonly rect: { readonly x: number; readonly y: number; readonly width: number; readonly height: number }
+  readonly selectedElements?: readonly InspectElementItem[]
   readonly selector?: string
   readonly outerHtml?: string
   readonly text?: string
@@ -631,26 +617,35 @@ function isInspectPayload(data: unknown): data is InspectPayload {
 function formatInspectPrompt(payload: InspectPayload): string {
   const lines: string[] = []
   if (payload.userPrompt) {
-    lines.push(payload.userPrompt, '', '---', '**Context**:')
+    lines.push(payload.userPrompt, '', '---', '**Design Context**:')
   } else {
-    lines.push('Please inspect and modify this part of the design:')
+    lines.push('Please inspect and modify these selected design elements:')
   }
-  if (payload.selector) {
-    lines.push(`- **Selected Element**: \`${payload.selector}\``)
+  if (payload.selectedElements && payload.selectedElements.length > 0) {
+    lines.push(`- **Selected Elements (${String(payload.selectedElements.length)})**:`)
+    payload.selectedElements.forEach((item, index) => {
+      lines.push(`  ${String(index + 1)}. \`${item.selector}\` (${String(Math.round(item.rect.width))} × ${String(Math.round(item.rect.height))} px)`)
+      if (item.text) lines.push(`     - Text: "${item.text}"`)
+      if (item.outerHtml) lines.push(`     - HTML: \`${item.outerHtml}\``)
+    })
+  } else {
+    if (payload.selector) {
+      lines.push(`- **Selected Element**: \`${payload.selector}\``)
+    }
+    if (payload.outerHtml) {
+      lines.push(`- **Element HTML**: \`${payload.outerHtml}\``)
+    }
+    if (payload.text) {
+      lines.push(`- **Text Content**: "${payload.text}"`)
+    }
   }
-  if (payload.outerHtml) {
-    lines.push(`- **Element HTML**: \`${payload.outerHtml}\``)
-  }
-  if (payload.elements && payload.elements.length > 0) {
+  if (payload.elements && payload.elements.length > 0 && (!payload.selectedElements || payload.selectedElements.length === 0)) {
     lines.push('- **Elements in Region**:')
     for (const el of payload.elements.slice(0, 5)) {
       lines.push(`  - \`${el}\``)
     }
   }
-  if (payload.text) {
-    lines.push(`- **Text Content**: "${payload.text}"`)
-  }
-  lines.push(`- **Region**: ${Math.round(payload.rect.width)} × ${Math.round(payload.rect.height)} px`)
+  lines.push(`- **Captured Region**: ${String(Math.round(payload.rect.width))} × ${String(Math.round(payload.rect.height))} px`)
   if (payload.location) {
     lines.push(`- **Page URL**: ${payload.location}`)
   }
