@@ -5,6 +5,7 @@ import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-session/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar-right/client'
+import type { ISessions } from '@deepseek-ai/dsh-api-session-controller/client'
 import type {} from '@deepseek-ai/dsh-api-workspace-controller/client'
 import { BrowserBody, type BrowserBodyProps } from './view/BrowserBody.tsx'
 import { BrowserTitle } from './view/BrowserTitle.tsx'
@@ -66,6 +67,24 @@ export function apply(ctx: Context): void {
   })
   const store = createBrowserStore()
   const openTabs = ctx.sidebarRight.openTabs
+  interface ShellTarget {
+    setDraft(text: string): void
+    submit(mode?: string, source?: string): void
+  }
+  interface ConversationTarget {
+    readonly input?: {
+      shell(id: string): ShellTarget
+    }
+  }
+
+  let activeConversation: ConversationTarget | undefined
+  ctx.inject(['conversation'], (convScope) => {
+    activeConversation = convScope.get('conversation') as ConversationTarget | undefined
+  })
+  let activeSessions: ISessions | undefined
+  ctx.inject(['sessions'], (sessScope) => {
+    activeSessions = sessScope.get('sessions')
+  })
   const carrier = (globalThis as typeof globalThis & {
     dshDesktop?: { readonly protocolVersion: number; readonly browser?: DesktopBrowserBridge }
   }).dshDesktop
@@ -89,14 +108,9 @@ export function apply(ctx: Context): void {
         }
         const sendToChat = (prompt: string, submit = true): boolean => {
           try {
-            const conversation = scope.get('conversation') as {
-              readonly input?: {
-                shell(id: string): {
-                  setDraft(text: string): void
-                  submit(mode?: string, source?: string): void
-                }
-              }
-            } | undefined
+            const conversation: ConversationTarget | undefined = activeConversation
+              ?? (ctx.get('conversation') as ConversationTarget | undefined)
+              ?? (scope.get('conversation') as ConversationTarget | undefined)
             if (conversation?.input && sessionId) {
               const shell = conversation.input.shell(sessionId)
               shell.setDraft(prompt)
@@ -106,7 +120,21 @@ export function apply(ctx: Context): void {
               return true
             }
           } catch (error) {
-            console.warn('ui-sidebar-browser: sendToChat failed', error)
+            console.warn('ui-sidebar-browser: sendToChat via shell failed', error)
+          }
+          try {
+            const sessions = activeSessions
+              ?? ctx.get('sessions')
+              ?? scope.get('sessions')
+            if (sessions && sessionId) {
+              const binding = sessions.binding(sessionId)
+              if (binding?.session) {
+                void binding.session.prompt([{ type: 'text', text: prompt }], 'queue')
+                return true
+              }
+            }
+          } catch (error) {
+            console.warn('ui-sidebar-browser: sendToChat via session prompt failed', error)
           }
           return false
         }

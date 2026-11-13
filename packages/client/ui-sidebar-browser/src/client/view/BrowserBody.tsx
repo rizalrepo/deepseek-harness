@@ -762,28 +762,62 @@ export function BrowserBody(props: BrowserBodyProps): ReactNode {
                 clipboardItems['image/png'] = imageBlob
               }
 
+              // 1. Send directly to active conversation chat FIRST
+              let sentDirectly = false
+              if (raw.isCopyOnly !== true) {
+                if (typeof sendToChat === 'function') {
+                  try {
+                    sentDirectly = sendToChat(prompt, true)
+                  } catch (err) {
+                    console.warn('sendToChat invocation error', err)
+                  }
+                }
+                // Fallback: If not sent via service, populate active composer in DOM
+                if (!sentDirectly) {
+                  try {
+                    const card = document.querySelector('[data-composer-card]')
+                    const editor = card?.querySelector('[contenteditable="true"]') as HTMLElement | null
+                    if (editor) {
+                      editor.focus()
+                      editor.textContent = prompt
+                      editor.dispatchEvent(new Event('input', { bubbles: true }))
+                      const sendBtn = card?.querySelector('button[aria-label="Send"], button[aria-label="Kirim"], button[aria-label="发送"]') as HTMLButtonElement | null
+                      if (sendBtn && !sendBtn.disabled) {
+                        sendBtn.click()
+                        sentDirectly = true
+                      }
+                    }
+                  } catch {}
+                }
+              }
+
+              // 2. Safe non-throwing clipboard copy
               try {
+                if (typeof window !== 'undefined' && typeof window.focus === 'function') {
+                  window.focus()
+                }
                 await navigator.clipboard.write([new ClipboardItem(clipboardItems)])
               } catch {
-                await navigator.clipboard.writeText(prompt)
+                try {
+                  await navigator.clipboard.writeText(prompt)
+                } catch {
+                  // Ignore clipboard focus errors so sending to chat is never blocked
+                }
               }
 
-              let sentDirectly = false
-              if (raw.isCopyOnly !== true && typeof sendToChat === 'function') {
-                sentDirectly = sendToChat(prompt, true)
-              }
-
-              if (sentDirectly) {
-                setToast(t('inspect.sentToChat'))
-              } else {
-                setToast(imageBlob !== undefined ? t('inspect.copiedWithImage') : t('inspect.copied'))
-              }
-
+              // 3. Save draft to localStorage as fallback
               try {
                 if (typeof localStorage !== 'undefined' && props.sessionId) {
                   localStorage.setItem(`dsh.conversation.${props.sessionId}`, JSON.stringify({ text: prompt, references: [] }))
                 }
               } catch {}
+
+              // 4. Toast notification
+              if (sentDirectly) {
+                setToast(t('inspect.sentToChat'))
+              } else {
+                setToast(imageBlob !== undefined ? t('inspect.copiedWithImage') : t('inspect.copied'))
+              }
             })()
           }
         } catch {}
