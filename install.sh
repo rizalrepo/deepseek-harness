@@ -111,10 +111,11 @@ pnpm run build:artifacts
 info "Building desktop application..."
 pnpm --filter @deepseek-ai/dsh-desktop run build
 
-# Prepare primary runtime
-info "Preparing primary Electron runtime..."
+# Prepare primary runtime and development project
+info "Preparing primary Electron runtime and development project..."
 cd "$INSTALL_DIR/apps/desktop"
 pnpm run prepare:primary-runtime
+pnpm run prepare:dev-project
 cd "$INSTALL_DIR"
 
 # Write platform/arch descriptor
@@ -195,6 +196,7 @@ pnpm --filter @deepseek-ai/dsh-desktop run build
 echo "=== 4. Updating runtime ==="
 cd "$REPO_DIR/apps/desktop"
 pnpm run prepare:primary-runtime
+pnpm run prepare:dev-project
 cd "$REPO_DIR"
 
 node -e '
