@@ -7,8 +7,9 @@ import { app } from 'electron'
 import { inc, parse } from 'semver'
 import { readDesktopLoginShellEnvironment, resolveDesktopLoginShellConfig } from '../login-shell-environment.ts'
 
-const run = promisify(execFile)
+const RUN = promisify(execFile)
 const BRANCH = 'master'
+const UPDATE_REPOSITORY = 'https://github.com/rizalrepo/deepseek-harness.git'
 
 interface Target {
   readonly root: string
@@ -54,14 +55,12 @@ export class LinuxGitUpdater extends EventEmitter {
     cancellationToken: { cancel: () => void }
   }> {
     const abort = new AbortController()
-    const git = async (cwd: string, ...args: string[]): Promise<string> => (await run('git', ['-C', cwd, ...args], {
+    const git = async (cwd: string, ...args: string[]): Promise<string> => (await RUN('git', ['-C', cwd, ...args], {
       signal: abort.signal, timeout: 120_000, env: { ...process.env, GIT_TERMINAL_PROMPT: '0' },
     })).stdout.trim()
     const root = await git(this.appPath(), 'rev-parse', '--show-toplevel')
-    // Prefer the rizalrepo fork when a checkout also tracks the official repository as origin.
-    const remotes = (await git(root, 'remote')).split('\n')
-    const remote = remotes.includes('fork') ? 'fork' : 'origin'
-    await git(root, 'fetch', '--quiet', remote, BRANCH)
+    // Always check the user's fork; local remote names may point at the official upstream.
+    await git(root, 'fetch', '--quiet', UPDATE_REPOSITORY, `refs/heads/${BRANCH}`)
     const sha = await git(root, 'rev-parse', 'FETCH_HEAD')
     const head = await git(root, 'rev-parse', 'HEAD')
     // Only a strict fast-forward is an update; local commits ahead of or diverged from master are not replaced.
@@ -90,7 +89,7 @@ export class LinuxGitUpdater extends EventEmitter {
     ]
     this.emit('download-progress', { percent: 1 })
     for (const [command, args, cwd, percent] of steps) {
-      await run(command, args, { cwd, env, signal: abort.signal, maxBuffer: 256 * 1024 * 1024 })
+      await RUN(command, args, { cwd, env, signal: abort.signal, maxBuffer: 256 * 1024 * 1024 })
       this.emit('download-progress', { percent })
     }
     this.target = undefined

@@ -151,7 +151,7 @@ The app should now appear in your application launcher and can be pinned to the 
 
 ## In-app updates
 
-The app checks the checkout's GitHub remote (`fork` if present, else `origin`) for new commits on `master` at startup and every 10 minutes. A newer commit shows the Update indicator; **Check for Updates** in the app menu runs the check on demand.
+The app checks `https://github.com/rizalrepo/deepseek-harness` on `master` at startup and every 10 minutes, regardless of the local Git remote names or URLs. A newer commit shows the Update indicator; **Check for Updates** in the app menu runs the check on demand.
 
 Choosing Update runs in the background: `git merge --ff-only` to the fetched commit, `pnpm install`, `pnpm run build:artifacts`, the desktop build, `prepare:primary-runtime`, and `prepare:dev-project`. When it finishes, **Install and Restart** stops the backend and relaunches the app. Local edits or commits that prevent a fast-forward make the update fail with the git error instead of being overwritten; the running app is unaffected.
 
