@@ -494,6 +494,8 @@
 
     - id: web-deepseek-api
       name: '@deepseek-ai/dsh-web-deepseek-api'
+    - id: web-search-openrouter
+      name: '@deepseek-ai/dsh-web-search-openrouter'
 
     - id: web-fetch-http
       name: '@deepseek-ai/dsh-web-fetch-http'
