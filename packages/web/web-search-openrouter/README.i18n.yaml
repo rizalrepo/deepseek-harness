@@ -1,0 +1,34 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/web/web-search-openrouter/README.md
+/:
+  en: 4e73f1a4f2ac61b1
+  zh: dded455440081fa2
+/deepseek-ai-dsh-web-search-openrouter:
+  en: b6b962bffca8fa7d
+  zh: 34aa6df343891fd3
+/deepseek-ai-dsh-web-search-openrouter/summary:
+  en: 7f82b478c618503b
+  zh: e93e5b578508ad12
+/deepseek-ai-dsh-web-search-openrouter/table-of-contents:
+  en: aa5d8ecb172e07b8
+  zh: daa471955e23dffb
+/deepseek-ai-dsh-web-search-openrouter/use-this-package:
+  en: 2a06eb4cd52ab9c3
+  zh: 15aad0cbf974480c
+/deepseek-ai-dsh-web-search-openrouter/use-this-package/configuration:
+  en: aed0dc846d6e1406
+  zh: f5a4edbd2b4ceef1
+/deepseek-ai-dsh-web-search-openrouter/use-this-package/search-results-and-errors:
+  en: 8d1e2e9c84f432f4
+  zh: 2e408602c84ede5a
+/deepseek-ai-dsh-web-search-openrouter/model-experience:
+  en: 5fb43d227a350185
+  zh: 0f63ba55619991d8
+/deepseek-ai-dsh-web-search-openrouter/known-limitations:
+  en: 591be38e78fd7c96
+  zh: a0a0f7c92fa86e1c
+/deepseek-ai-dsh-web-search-openrouter/further-exploration:
+  en: 13492a299a161933
+  zh: 740089256c7abd17
