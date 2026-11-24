@@ -484,7 +484,7 @@
     - id: web
       name: '@deepseek-ai/dsh-web'
       config:
-        searchProvider: deepseek-search-api
+        searchProvider: duckduckgo-web-search
         fetchProvider: http
 
     - id: web-search-deepseek

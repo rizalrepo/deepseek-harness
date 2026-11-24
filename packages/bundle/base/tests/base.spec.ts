@@ -37,7 +37,7 @@ describe('dsh-base bundle', () => {
     })
     expect(rows.filter(row => row.id === 'subagent-codex')).toHaveLength(0)
     expect(rows.filter(row => row.id === 'subagent-claude-code')).toHaveLength(0)
-    expect(rows.find(row => row.id === 'web')?.config).toEqual({ searchProvider: 'deepseek-search-api', fetchProvider: 'http' })
+    expect(rows.find(row => row.id === 'web')?.config).toEqual({ searchProvider: 'duckduckgo-web-search', fetchProvider: 'http' })
     expect(rows.find(row => row.id === 'web-deepseek-api')).toEqual({ id: 'web-deepseek-api', name: '@deepseek-ai/dsh-web-deepseek-api' })
     expect(rows.find(row => row.id === 'web-search-duckduckgo')).toEqual({ id: 'web-search-duckduckgo', name: '@deepseek-ai/dsh-web-search-duckduckgo' })
     expect(rows.find(row => row.id === 'web-search-openrouter')).toEqual({ id: 'web-search-openrouter', name: '@deepseek-ai/dsh-web-search-openrouter' })
